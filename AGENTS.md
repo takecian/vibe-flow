@@ -16,3 +16,8 @@ The repository is structured into three main parts:
 -   `bin/`: Includes the CLI entry point for the application.
 
 This setup facilitates seamless interaction between the user interface, the backend logic, and the integrated AI and Git functionalities.
+
+## Documentation
+
+For detailed technical information, please refer to:
+-   [Architecture Documentation](docs/architecture.md) - Comprehensive architecture overview, technology stack, data flow, API endpoints, and design decisions
