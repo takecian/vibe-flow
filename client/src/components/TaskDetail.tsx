@@ -27,6 +27,29 @@ export function TaskDetail({ taskId, onClose }: TaskDetailProps) {
 
     if (!task) return null; // Don't show loading in sidebar, just null if not found
 
+    const getStatusBadgeClasses = (status: string) => {
+        const baseClasses = 'text-xs px-2 py-0.5 rounded-xl uppercase font-semibold';
+        const statusClasses = {
+            todo: 'bg-slate-400 text-slate-900',
+            inprogress: 'bg-blue-500 text-white',
+            done: 'bg-green-500 text-white',
+            inreview: 'bg-yellow-500 text-white',
+            cancelled: 'bg-red-500 text-white'
+        };
+        return `${baseClasses} ${statusClasses[status as keyof typeof statusClasses] || 'bg-slate-400 text-slate-900'}`;
+    };
+
+    const containerClasses = onClose 
+        ? 'h-screen flex flex-col bg-slate-900 fixed top-0 right-0 bottom-0 w-1/2 min-w-[600px] z-[1000] shadow-[-4px_0_20px_rgba(0,0,0,0.5)] border-l border-slate-600'
+        : 'h-screen flex flex-col bg-slate-900';
+
+    const getTabButtonClasses = (isActive: boolean) => {
+        const baseClasses = 'px-3 py-1.5 text-sm border-0 rounded-md cursor-pointer flex items-center gap-1.5 transition-colors';
+        return isActive 
+            ? `${baseClasses} bg-blue-500 text-white`
+            : `${baseClasses} bg-transparent text-slate-400 hover:bg-slate-600 hover:text-slate-50`;
+    };
+
     const handleDeleteTask = async () => {
         if (window.confirm(`Are you sure you want to delete task "${task.title}"?`)) {
             await deleteTask(task.id);
@@ -39,7 +62,7 @@ export function TaskDetail({ taskId, onClose }: TaskDetailProps) {
     };
 
     return (
-        <div className={`h-screen flex flex-col bg-slate-900 ${onClose ? 'fixed top-0 right-0 bottom-0 w-1/2 min-w-[600px] z-[1000] shadow-[-4px_0_20px_rgba(0,0,0,0.5)] border-l border-slate-600' : ''}`}>
+        <div className={containerClasses}>
             <header className="px-6 py-4 border-b border-slate-600 flex items-center gap-4 bg-slate-800">
                 {onClose ? (
                     <button className="bg-transparent border-0 text-slate-400 cursor-pointer p-2 rounded-full flex items-center justify-center hover:bg-slate-600 hover:text-slate-50" onClick={onClose}>
@@ -52,17 +75,13 @@ export function TaskDetail({ taskId, onClose }: TaskDetailProps) {
                 )}
                 <div className="flex-1 flex items-center gap-3">
                     <h1 className="m-0 text-lg font-semibold">{task.title}</h1>
-                    <span className={`text-xs px-2 py-0.5 rounded-xl uppercase font-semibold ${
-                        task.status === 'todo' ? 'bg-slate-400 text-slate-900' :
-                        task.status === 'inprogress' ? 'bg-blue-500 text-white' :
-                        task.status === 'done' ? 'bg-green-500 text-white' : 'bg-slate-400 text-slate-900'
-                    }`}>{task.status}</span>
+                    <span className={getStatusBadgeClasses(task.status)}>{task.status}</span>
                 </div>
                 <div className="flex gap-3 relative">
-                    <button className={`px-3 py-1.5 text-sm border-0 rounded-md cursor-pointer flex items-center gap-1.5 transition-colors ${activeTab === 'details' ? 'bg-blue-500 text-white' : 'bg-transparent text-slate-400 hover:bg-slate-600 hover:text-slate-50'}`} onClick={() => setActiveTab('details')}>
+                    <button className={getTabButtonClasses(activeTab === 'details')} onClick={() => setActiveTab('details')}>
                         <FileText size={16} /> Details
                     </button>
-                    <button className={`px-3 py-1.5 text-sm border-0 rounded-md cursor-pointer flex items-center gap-1.5 transition-colors ${activeTab === 'terminal' ? 'bg-blue-500 text-white' : 'bg-transparent text-slate-400 hover:bg-slate-600 hover:text-slate-50'}`} onClick={() => setActiveTab('terminal')}>
+                    <button className={getTabButtonClasses(activeTab === 'terminal')} onClick={() => setActiveTab('terminal')}>
                         <Terminal size={16} /> Terminal
                     </button>
                     <div className="relative flex items-center">

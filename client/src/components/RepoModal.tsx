@@ -64,6 +64,17 @@ export function RepoModal({ onSave, initialConfig, onClose }: RepoModalProps) {
         setAiTool(e.target.value);
     };
 
+    const getToolOptionClasses = (tool: string, isSelected: boolean, isAvailable: boolean) => {
+        const baseClasses = 'flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer transition-all relative gap-2';
+        if (!isAvailable) {
+            return `${baseClasses} border-slate-600 bg-slate-800 opacity-50 cursor-not-allowed`;
+        }
+        if (isSelected) {
+            return `${baseClasses} border-blue-500 bg-blue-500/10`;
+        }
+        return `${baseClasses} border-slate-600 bg-slate-900`;
+    };
+
     return (
         <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/70 flex justify-center items-center z-[1000] backdrop-blur-sm">
             <div className="bg-slate-800 p-8 rounded-xl w-full max-w-[500px] border border-slate-600 shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)]">
@@ -90,29 +101,25 @@ export function RepoModal({ onSave, initialConfig, onClose }: RepoModalProps) {
                     <div className="mb-6">
                         <label className="block mb-2 text-sm font-medium text-slate-50">AI Assistant</label>
                         <div className="grid grid-cols-3 gap-3">
-                            {['claude', 'codex', 'gemini'].map(tool => (
-                                <label key={tool} className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer transition-all relative gap-2 ${
-                                    aiTool === tool 
-                                        ? 'border-blue-500 bg-blue-500/10' 
-                                        : 'border-slate-600 bg-slate-900'
-                                } ${
-                                    !availableTools[tool as keyof AiToolsCheckResult] 
-                                        ? 'opacity-50 cursor-not-allowed bg-slate-800' 
-                                        : ''
-                                }`}>
-                                    <input
-                                        type="radio"
-                                        name="aiTool"
-                                        value={tool}
-                                        checked={aiTool === tool}
-                                        onChange={handleAiToolChange}
-                                        disabled={!availableTools[tool as keyof AiToolsCheckResult]}
-                                        className="hidden"
-                                    />
-                                    <span className="font-medium capitalize">{tool}</span>
-                                    {availableTools[tool as keyof AiToolsCheckResult] ? <span className="text-green-500 text-[10px]">●</span> : <span className="text-slate-400 text-[10px]">○</span>}
-                                </label>
-                            ))}
+                            {['claude', 'codex', 'gemini'].map(tool => {
+                                const isAvailable = availableTools[tool as keyof AiToolsCheckResult];
+                                const isSelected = aiTool === tool;
+                                return (
+                                    <label key={tool} className={getToolOptionClasses(tool, isSelected, isAvailable)}>
+                                        <input
+                                            type="radio"
+                                            name="aiTool"
+                                            value={tool}
+                                            checked={isSelected}
+                                            onChange={handleAiToolChange}
+                                            disabled={!isAvailable}
+                                            className="hidden"
+                                        />
+                                        <span className="font-medium capitalize">{tool}</span>
+                                        {isAvailable ? <span className="text-green-500 text-[10px]">●</span> : <span className="text-slate-400 text-[10px]">○</span>}
+                                    </label>
+                                );
+                            })}
                         </div>
                         {checkingTools && <span className="text-xs text-slate-400 mt-2 block">Checking tools...</span>}
                     </div>
