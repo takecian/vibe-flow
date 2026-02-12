@@ -1,6 +1,6 @@
 # Vibe-Flow
 
-Vibe-Flow is a local AI-enhanced Kanban board designed for seamless task management and code integration. It combines a modern React frontend with a robust Node.js backend to provide a fluid workflow for developers.
+Vibe-Flow is a local AI-enhanced Kanban board designed for seamless task management and code integration. It combines a modern React frontend with a robust Node.js backend, built with TypeScript for enhanced type safety and developer experience.
 
 ## Features
 
@@ -23,6 +23,9 @@ Vibe-Flow is a local AI-enhanced Kanban board designed for seamless task managem
     - Built with React and Vite.
     - Drag-and-drop interface (hello-pangea/dnd).
     - Dark mode optimized.
+- **TypeScript**:
+    - Fully typed codebase for both client and server.
+    - Strict mode enabled for maximum type safety.
 
 ## Prerequisites
 
@@ -48,6 +51,11 @@ Vibe-Flow is a local AI-enhanced Kanban board designed for seamless task managem
     # This will install dependencies for both root, client, and server workspaces.
     ```
 
+3.  Build the project (compiles TypeScript):
+    ```bash
+    npm run build
+    ```
+
 ## Usage
 
 1.  Start the development server (runs both client and server concurrently):
@@ -70,8 +78,8 @@ Vibe-Flow is a local AI-enhanced Kanban board designed for seamless task managem
 
 ## Project Structure
 
--   `client/`: React frontend (Vite).
--   `server/`: Express.js backend.
+-   `client/`: React frontend (Vite) - TypeScript with `.tsx` components.
+-   `server/`: Express.js backend - TypeScript compiled to `dist/`.
 -   `bin/`: CLI entry point.
 
 ## License
