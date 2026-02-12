@@ -4,7 +4,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { setupTerminal } = require('./terminal');
 const { setupGitRoutes, createWorktree } = require('./git');
-const { setupTaskRoutes } = require('./tasks');
+const { setupTaskRoutes, getTaskById } = require('./tasks'); // Import getTaskById
 const { setupSystemRoutes } = require('./system');
 const { initDB } = require('./db');
 const fs = require('fs');
@@ -62,7 +62,7 @@ if (STATE.repoPath) {
 // specific modules now need to handle dynamic path.
 // We'll modify them to take `() => STATE.repoPath` or similar.
 
-setupTerminal(io, () => STATE);
+setupTerminal(io, () => STATE, getTaskById); // Pass getTaskById
 setupGitRoutes(app, () => STATE);
 setupTaskRoutes(app, () => STATE, createWorktree);
 setupSystemRoutes(app);

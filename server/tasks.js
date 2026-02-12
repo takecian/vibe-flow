@@ -1,6 +1,12 @@
 const { getDB } = require('./db');
 const { v4: uuidv4 } = require('uuid');
 
+async function getTaskById(taskId) {
+    const db = getDB();
+    await db.read();
+    return db.data.tasks.find(t => t.id === taskId);
+}
+
 function setupTaskRoutes(app, getState, createWorktree) {
 
     // Middleware to ensure DB is ready or check path
@@ -74,4 +80,4 @@ function setupTaskRoutes(app, getState, createWorktree) {
     });
 }
 
-module.exports = { setupTaskRoutes };
+module.exports = { setupTaskRoutes, getTaskById };

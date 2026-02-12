@@ -3,12 +3,12 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 
-function setupTerminal(io, getState) {
+function setupTerminal(io, getState, getTaskById) {
     const shell = os.platform() === 'win32' ? 'powershell.exe' : 'zsh';
     const sessions = {};
 
     io.on('connection', (socket) => {
-        socket.on('terminal:create', ({ cols, rows, taskId }) => {
+        socket.on('terminal:create', async ({ cols, rows, taskId }) => {
             const { repoPath } = getState();
 
             if (!repoPath) {
@@ -23,10 +23,27 @@ function setupTerminal(io, getState) {
             }
 
             let workingDir = repoPath;
+            let taskEnv = {}; // Environment variables for the task
+
             if (taskId && taskId !== 'default') {
-                const worktreePath = path.join(repoPath, '.vibe-flow', 'worktrees', taskId);
-                if (fs.existsSync(worktreePath)) {
-                    workingDir = worktreePath;
+                const task = await getTaskById(taskId);
+                if (task) {
+                    // Only inject details if the task is "in progress"
+                    if (task.status === 'inprogress') {
+                        taskEnv = {
+                            TASK_ID: task.id,
+                            TASK_TITLE: task.title,
+                            TASK_DESCRIPTION: task.description,
+                            TASK_STATUS: task.status,
+                            // Add other relevant task details if needed
+                        };
+                        console.log(`[Terminal] Injected task details for task ${task.id} into environment.`);
+                    }
+
+                    const worktreePath = path.join(repoPath, '.vibe-flow', 'worktrees', taskId);
+                    if (fs.existsSync(worktreePath)) {
+                        workingDir = worktreePath;
+                    }
                 }
             }
 
@@ -55,7 +72,7 @@ function setupTerminal(io, getState) {
                     cols: cols || 80,
                     rows: rows || 30,
                     cwd: workingDir,
-                    env: process.env
+                    env: { ...process.env, ...taskEnv } // Merge existing and task-specific envs
                 });
             } catch (spawnError) {
                 console.error('[Terminal] Spawn failed:', spawnError);
