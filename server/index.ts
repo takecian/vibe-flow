@@ -1,21 +1,31 @@
-const express = require('express');
-const cors = require('cors');
-const http = require('http');
-const { Server } = require('socket.io');
-const { setupTerminal } = require('./terminal');
-const { setupGitRoutes, createWorktree } = require('./git');
-const { setupTaskRoutes, getTaskById } = require('./tasks'); // Import getTaskById
-const { setupSystemRoutes } = require('./system');
-const { initDB } = require('./db');
-const fs = require('fs');
+import express, { Application, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import http from 'http';
+import { Server } from 'socket.io';
+import { setupTerminal } from './terminal';
+import { setupGitRoutes, createWorktree } from './git';
+import { setupTaskRoutes, getTaskById } from './tasks';
+import { setupSystemRoutes } from './system';
+import { initDB } from './db';
+import fs from 'fs';
+import { AppConfig } from './types';
+
+// Extend the Express Request type to include appState
+declare global {
+    namespace Express {
+        interface Request {
+            appState: AppConfig;
+        }
+    }
+}
 
 // Initial State
-let STATE = {
-    repoPath: process.env.REPO_PATH || '', // Start empty if not provided, or default
+let STATE: AppConfig = {
+    repoPath: process.env.REPO_PATH || '',
     aiTool: process.env.AI_TOOL || 'claude'
 };
 
-const app = express();
+const app: Application = express();
 app.use(cors());
 app.use(express.json());
 
@@ -23,17 +33,17 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
 // Middleware to inject current state
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
     req.appState = STATE;
     next();
 });
 
 // Config Routes
-app.get('/api/config', (req, res) => {
+app.get('/api/config', (req: Request, res: Response) => {
     res.json(STATE);
 });
 
-app.post('/api/config', async (req, res) => {
+app.post('/api/config', async (req: Request, res: Response) => {
     const { repoPath, aiTool } = req.body;
 
     if (repoPath) {
@@ -52,23 +62,18 @@ app.post('/api/config', async (req, res) => {
 });
 
 // Initialize modules
-// We pass a getter function or the STATE object reference where possible
-// For DB, we just init it initially if we have a path
 if (STATE.repoPath) {
     initDB(STATE.repoPath).catch(err => console.error("Failed to init DB:", err));
 }
 
 // Setup Routes
-// specific modules now need to handle dynamic path.
-// We'll modify them to take `() => STATE.repoPath` or similar.
-
-setupTerminal(io, () => STATE, getTaskById); // Pass getTaskById
+setupTerminal(io, () => STATE, getTaskById);
 setupGitRoutes(app, () => STATE);
 setupTaskRoutes(app, () => STATE, createWorktree);
 setupSystemRoutes(app);
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', ...STATE });
 });
 

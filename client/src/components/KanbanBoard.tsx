@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useTasks } from '../context/TaskContext';
 import { useNavigate } from 'react-router-dom';
 import { RepoModal } from './RepoModal';
@@ -7,8 +7,17 @@ import { CreateTaskModal } from './CreateTaskModal';
 import { TaskDetail } from './TaskDetail';
 import styles from './KanbanBoard.module.css';
 import { Plus, Github, Folder, Settings } from 'lucide-react';
+import { Task, AppConfig } from '../types'; // Import Task and AppConfig interfaces
 
-const COLUMNS = {
+interface Columns {
+    todo: string;
+    inprogress: string;
+    inreview: string;
+    done: string;
+    cancelled: string;
+}
+
+const COLUMNS: Columns = {
     todo: 'To Do',
     inprogress: 'In Progress',
     inreview: 'In Review',
@@ -19,30 +28,30 @@ const COLUMNS = {
 export function KanbanBoard() {
     const { tasks, moveTask, addTask, isConnected, config, setRepoPath, loading } = useTasks();
     const navigate = useNavigate();
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [showSettings, setShowSettings] = useState(false);
-    const [selectedTaskId, setSelectedTaskId] = useState(null);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+    const [showSettings, setShowSettings] = useState<boolean>(false);
+    const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
     if (loading) {
         return <div className={styles.loading}>Loading...</div>;
     }
 
-    const onDragEnd = (result) => {
+    const onDragEnd = (result: DropResult) => {
         if (!result.destination) return;
         const { source, destination, draggableId } = result;
         if (source.droppableId !== destination.droppableId) {
-            moveTask(draggableId, destination.droppableId);
+            moveTask(draggableId, destination.droppableId as Task['status']);
         }
     };
 
-    const handleCreateTask = async (title, description) => {
+    const handleCreateTask = async (title: string, description: string) => {
         await addTask(title, description);
     };
 
     // Extract repo name from path
-    const repoName = config?.repoPath ? config.repoPath.split('/').pop() : 'No Repository';
+    const repoName: string = config?.repoPath ? config.repoPath.split('/').pop() || 'No Repository' : 'No Repository';
 
-    const handleSaveConfig = async (path, aiTool) => {
+    const handleSaveConfig = async (path: string, aiTool: string) => {
         await setRepoPath(path, aiTool);
         setShowSettings(false);
     };
@@ -53,7 +62,7 @@ export function KanbanBoard() {
             {(!isConnected || showSettings) && (
                 <RepoModal
                     onSave={handleSaveConfig}
-                    initialConfig={config}
+                    initialConfig={config as AppConfig | null} // Cast to AppConfig | null
                     onClose={isConnected ? () => setShowSettings(false) : undefined}
                 />
             )}
@@ -104,7 +113,7 @@ export function KanbanBoard() {
                                 >
                                     <h2 className={styles.columnTitle}>{title}</h2>
                                     <div className={styles.taskList}>
-                                        {tasks.filter(t => t.status === columnId).map((task, index) => (
+                                        {tasks.filter(t => t.status === columnId).map((task: Task, index: number) => (
                                             <Draggable key={task.id} draggableId={task.id} index={index}>
                                                 {(provided) => (
                                                     <div

@@ -1,15 +1,21 @@
-const { exec } = require('child_process');
-const util = require('util');
+import { exec } from 'child_process';
+import util from 'util';
+import os from 'os';
+import path from 'path';
+import fs from 'fs';
+import { Request, Response, Application } from 'express';
+
 const execAsync = util.promisify(exec);
-const os = require('os');
-const path = require('path');
-const fs = require('fs');
 
-function setupSystemRoutes(app) {
+interface AiToolCheckResult {
+    [key: string]: boolean;
+}
 
-    app.get('/api/system/pick-folder', async (req, res) => {
+function setupSystemRoutes(app: Application): void {
+
+    app.get('/api/system/pick-folder', async (req: Request, res: Response) => {
         try {
-            let command;
+            let command: string | undefined;
             if (os.platform() === 'darwin') {
                 // macOS
                 command = `osascript -e 'POSIX path of (choose folder with prompt "Select a Git Repository")'`;
@@ -22,14 +28,14 @@ function setupSystemRoutes(app) {
 
             if (command) {
                 const { stdout } = await execAsync(command);
-                const path = stdout.trim();
-                if (path) {
-                    res.json({ path });
+                const resultPath = stdout.trim(); // Renamed to avoid conflict with imported 'path'
+                if (resultPath) {
+                    res.json({ path: resultPath });
                 } else {
                     res.json({ canceled: true });
                 }
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Pick folder error:', e);
             if (e.message.includes('User canceled')) {
                 return res.json({ canceled: true });
@@ -38,9 +44,9 @@ function setupSystemRoutes(app) {
         }
     });
 
-    app.get('/api/system/ai-tools', async (req, res) => {
-        const tools = ['claude', 'codex', 'gemini'];
-        const results = {};
+    app.get('/api/system/ai-tools', async (req: Request, res: Response) => {
+        const tools: string[] = ['claude', 'codex', 'gemini'];
+        const results: AiToolCheckResult = {};
 
         // Expand PATH to include common locations
         const commonPaths = [
@@ -48,8 +54,8 @@ function setupSystemRoutes(app) {
             '/usr/local/bin',
             '/usr/bin',
             '/bin',
-            process.env.HOME + '/.local/bin',
-            process.env.HOME + '/bin',
+            (process.env.HOME || '') + '/.local/bin',
+            (process.env.HOME || '') + '/bin',
         ];
         const envPath = process.env.PATH || '';
         const extendedPath = commonPaths.join(path.delimiter) + path.delimiter + envPath;
@@ -77,7 +83,7 @@ function setupSystemRoutes(app) {
             if (!found) {
                 try {
                     const home = os.homedir();
-                    let configPath;
+                    let configPath: string | undefined;
                     if (tool === 'gemini') {
                         configPath = path.join(home, '.gemini');
                     } else if (tool === 'claude') {
@@ -100,4 +106,4 @@ function setupSystemRoutes(app) {
 
 }
 
-module.exports = { setupSystemRoutes };
+export { setupSystemRoutes };

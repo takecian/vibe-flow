@@ -1,11 +1,13 @@
 const API_URL = 'http://localhost:3000/api';
 
-export async function fetchConfig() {
+import { AppConfig, Task, GitStatus, PickFolderResult, AiToolsCheckResult } from './types';
+
+export async function fetchConfig(): Promise<AppConfig> {
     const res = await fetch(`${API_URL}/config`);
     return res.json();
 }
 
-export async function updateConfig(config) {
+export async function updateConfig(config: AppConfig): Promise<AppConfig> {
     const res = await fetch(`${API_URL}/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -14,13 +16,13 @@ export async function updateConfig(config) {
     return res.json();
 }
 
-export async function fetchTasks() {
+export async function fetchTasks(): Promise<Task[]> {
     const res = await fetch(`${API_URL}/tasks`);
     if (!res.ok) throw new Error('Failed to fetch tasks');
     return res.json();
 }
 
-export async function createTask(title, description) {
+export async function createTask(title: string, description: string): Promise<Task> {
     const res = await fetch(`${API_URL}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -29,7 +31,7 @@ export async function createTask(title, description) {
     return res.json();
 }
 
-export async function updateTask(id, updates) {
+export async function updateTask(id: string, updates: Partial<Task>): Promise<Task> {
     const res = await fetch(`${API_URL}/tasks/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -38,7 +40,7 @@ export async function updateTask(id, updates) {
     return res.json();
 }
 
-export async function deleteTask(id) {
+export async function deleteTask(id: string): Promise<{ success: boolean }> {
     const res = await fetch(`${API_URL}/tasks/${id}`, {
         method: 'DELETE'
     });
@@ -46,7 +48,7 @@ export async function deleteTask(id) {
     return res.json();
 }
 
-export async function createWorktree(taskId, branchName) {
+export async function createWorktree(taskId: string, branchName: string): Promise<{ success: boolean; path: string; message?: string }> {
     const res = await fetch(`${API_URL}/git/worktree`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -55,16 +57,17 @@ export async function createWorktree(taskId, branchName) {
     return res.json();
 }
 
-export async function getGitStatus() {
+export async function getGitStatus(): Promise<GitStatus> {
     const res = await fetch(`${API_URL}/git/status`);
     return res.json();
 }
 
-export async function pickFolder() {
+export async function pickFolder(): Promise<PickFolderResult> {
     const res = await fetch(`${API_URL}/system/pick-folder`);
     return res.json();
 }
-export async function checkAITools() {
+
+export async function checkAITools(): Promise<AiToolsCheckResult> {
     try {
         const res = await fetch(`${API_URL}/system/ai-tools`);
         const data = await res.json();

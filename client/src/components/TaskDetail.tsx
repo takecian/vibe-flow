@@ -4,17 +4,27 @@ import { useTasks } from '../context/TaskContext';
 import { TerminalView } from './TerminalView';
 import styles from './TaskDetail.module.css';
 import { X, FileText, ArrowLeft, Terminal, MoreVertical, Trash2 } from 'lucide-react';
+import { Task } from '../types'; // Import the Task interface
 
-export function TaskDetail({ taskId, onClose }) {
-    const { id } = useParams();
+interface TaskDetailProps {
+    taskId?: string;
+    onClose?: () => void;
+}
+
+interface TaskParams {
+    id: string;
+}
+
+export function TaskDetail({ taskId, onClose }: TaskDetailProps) {
+    const { id } = useParams<TaskParams>();
     const navigate = useNavigate();
     const { tasks, deleteTask } = useTasks();
 
     // Resolve ID from props (side panel) or params (route)
     const effectiveId = taskId || id;
-    const task = tasks.find(t => t.id === effectiveId);
-    const [activeTab, setActiveTab] = useState('terminal');
-    const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+    const task: Task | undefined = tasks.find(t => t.id === effectiveId);
+    const [activeTab, setActiveTab] = useState<'terminal' | 'details'>('terminal');
+    const [showOptionsMenu, setShowOptionsMenu] = useState<boolean>(false);
 
     if (!task) return null; // Don't show loading in sidebar, just null if not found
 

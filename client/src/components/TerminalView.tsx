@@ -1,23 +1,27 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
-import { io } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 import 'xterm/css/xterm.css';
 import styles from './TerminalView.module.css';
 
 const SOCKET_URL = 'http://localhost:3000';
 
-export function TerminalView({ taskId }) {
-    const terminalRef = useRef(null);
-    const socketRef = useRef(null);
-    const xtermRef = useRef(null);
-    const fitAddonRef = useRef(null);
+interface TerminalViewProps {
+    taskId: string;
+}
 
-    const [connected, setConnected] = useState(false);
+export function TerminalView({ taskId }: TerminalViewProps) {
+    const terminalRef = useRef<HTMLDivElement>(null);
+    const socketRef = useRef<Socket | null>(null);
+    const xtermRef = useRef<Terminal | null>(null);
+    const fitAddonRef = useRef<FitAddon | null>(null);
+
+    const [connected, setConnected] = useState<boolean>(false);
 
     useEffect(() => {
         // Initialize Socket
-        const socket = io(SOCKET_URL);
+        const socket: Socket = io(SOCKET_URL);
         socketRef.current = socket;
 
         socket.on('connect', () => {
@@ -25,42 +29,51 @@ export function TerminalView({ taskId }) {
             socket.emit('terminal:create', { cols: 80, rows: 24, taskId });
         });
 
-        socket.on(`terminal:data:${taskId || 'default'}`, (data) => {
+        socket.on(`terminal:data:${taskId || 'default'}`, (data: string) => {
             xtermRef.current?.write(data);
         });
 
+        socket.on('terminal:error', (message: string) => {
+            console.error('Terminal error from server:', message);
+            xtermRef.current?.write(`\r\nError: ${message}\r\n`);
+        });
+
         // Initialize xterm
-        const term = new Terminal({
+        const term: Terminal = new Terminal({
             cursorBlink: true,
             theme: { background: '#0f172a', foreground: '#f8fafc', cursor: '#3b82f6' },
             fontFamily: 'Menlo, Monaco, "Courier New", monospace',
             fontSize: 14
         });
 
-        const fitAddon = new FitAddon();
+        const fitAddon: FitAddon = new FitAddon();
         term.loadAddon(fitAddon);
 
         // Handle input
-        term.onData((data) => {
+        term.onData((data: string) => {
             if (socketRef.current?.connected) {
                 socketRef.current.emit(`terminal:input:${taskId || 'default'}`, data);
             }
         });
 
         const openTerminal = () => {
-            term.open(terminalRef.current);
-            xtermRef.current = term;
-            fitAddonRef.current = fitAddon;
-            setTimeout(() => {
-                try {
-                    fitAddon.fit();
-                    const { cols, rows } = term;
-                    socketRef.current?.emit(`terminal:resize:${taskId || 'default'}`, { cols, rows });
-                } catch (e) { }
-            }, 0);
+            if (terminalRef.current) {
+                term.open(terminalRef.current);
+                xtermRef.current = term;
+                fitAddonRef.current = fitAddon;
+                setTimeout(() => {
+                    try {
+                        fitAddon.fit();
+                        const { cols, rows } = term;
+                        socketRef.current?.emit(`terminal:resize:${taskId || 'default'}`, { cols, rows });
+                    } catch (e) {
+                        console.error("Fit error ignored:", e);
+                    }
+                }, 0);
+            }
         };
 
-        let resizeObserver;
+        let resizeObserver: ResizeObserver | undefined;
 
         if (terminalRef.current) {
             // Initial check if dimensions are already available

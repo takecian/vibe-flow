@@ -1,14 +1,19 @@
-const pty = require('node-pty');
-const os = require('os');
-const path = require('path');
-const fs = require('fs');
+import pty from 'node-pty'; // Reverted to original 'node-pty'
+import os from 'os';
+import path from 'path';
+import fs from 'fs';
+import { Server, Socket } from 'socket.io'; // Import specific types from socket.io
+import { Task, AppConfig } from './types'; // Import Task and AppConfig interfaces
 
-function setupTerminal(io, getState, getTaskById) {
+// Define a type for the getTaskById function
+type GetTaskByIdFunction = (taskId: string) => Promise<Task | undefined>;
+
+function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTaskByIdFunction): void {
     const shell = os.platform() === 'win32' ? 'powershell.exe' : 'zsh';
-    const sessions = {};
+    const sessions: { [key: string]: pty.IPty } = {}; // Type the sessions object
 
-    io.on('connection', (socket) => {
-        socket.on('terminal:create', async ({ cols, rows, taskId }) => {
+    io.on('connection', (socket: Socket) => {
+        socket.on('terminal:create', async ({ cols, rows, taskId }: { cols: number, rows: number, taskId: string }) => {
             const { repoPath } = getState();
 
             if (!repoPath) {
@@ -23,20 +28,17 @@ function setupTerminal(io, getState, getTaskById) {
             }
 
             let workingDir = repoPath;
-            let taskEnv = {}; // Environment variables for the task
+            const taskEnv: NodeJS.ProcessEnv = {}; // Environment variables for the task
 
             if (taskId && taskId !== 'default') {
                 const task = await getTaskById(taskId);
                 if (task) {
                     // Only inject details if the task is "in progress"
                     if (task.status === 'inprogress') {
-                        taskEnv = {
-                            TASK_ID: task.id,
-                            TASK_TITLE: task.title,
-                            TASK_DESCRIPTION: task.description,
-                            TASK_STATUS: task.status,
-                            // Add other relevant task details if needed
-                        };
+                        taskEnv.TASK_ID = task.id;
+                        taskEnv.TASK_TITLE = task.title;
+                        taskEnv.TASK_DESCRIPTION = task.description;
+                        taskEnv.TASK_STATUS = task.status;
                         console.log(`[Terminal] Injected task details for task ${task.id} into environment.`);
                     }
 
@@ -56,7 +58,7 @@ function setupTerminal(io, getState, getTaskById) {
             console.log(`[Terminal] Spawning ${shell} in ${workingDir}`);
             console.log(`[Terminal] Cols: ${cols}, Rows: ${rows}`);
 
-            let ptyProcess;
+            let ptyProcess: pty.IPty; // Type ptyProcess
             try {
                 // Verify directory exists specifically before spawn
                 try {
@@ -72,9 +74,9 @@ function setupTerminal(io, getState, getTaskById) {
                     cols: cols || 80,
                     rows: rows || 30,
                     cwd: workingDir,
-                    env: { ...process.env, ...taskEnv } // Merge existing and task-specific envs
+                    env: { ...process.env, ...taskEnv } as { [key: string]: string } // Merge existing and task-specific envs
                 });
-            } catch (spawnError) {
+            } catch (spawnError: any) {
                 console.error('[Terminal] Spawn failed:', spawnError);
                 socket.emit('terminal:error', 'Failed to spawn terminal process');
                 return;
@@ -86,11 +88,11 @@ function setupTerminal(io, getState, getTaskById) {
                 socket.emit(`terminal:data:${termId}`, data);
             });
 
-            socket.on(`terminal:input:${termId}`, (data) => {
+            socket.on(`terminal:input:${termId}`, (data: string) => {
                 ptyProcess.write(data);
             });
 
-            socket.on(`terminal:resize:${termId}`, ({ cols, rows }) => {
+            socket.on(`terminal:resize:${termId}`, ({ cols, rows }: { cols: number, rows: number }) => {
                 ptyProcess.resize(cols, rows);
             });
 
@@ -101,4 +103,4 @@ function setupTerminal(io, getState, getTaskById) {
     });
 }
 
-module.exports = { setupTerminal };
+export { setupTerminal };

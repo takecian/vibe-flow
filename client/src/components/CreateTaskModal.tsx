@@ -1,18 +1,29 @@
-import React, { useState } from 'react';
-import styles from './RepoModal.module.css'; // Reusing similar modal styles or create new ones? Let's use the same structure but maybe new file for cleanliness or just reuse classnames if possible.
-// Actually, let's create a dedicated style file to avoid coupling, even if similar.
+import React, { useState, FormEvent, ChangeEvent } from 'react';
 import modalStyles from './CreateTaskModal.module.css';
 
-export function CreateTaskModal({ onClose, onCreate }) {
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
+interface CreateTaskModalProps {
+    onClose: () => void;
+    onCreate: (title: string, description: string) => void;
+}
 
-    const handleSubmit = (e) => {
+export function CreateTaskModal({ onClose, onCreate }: CreateTaskModalProps) {
+    const [title, setTitle] = useState<string>('');
+    const [description, setDescription] = useState<string>('');
+
+    const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (title.trim()) {
             onCreate(title.trim(), description.trim());
             onClose();
         }
+    };
+
+    const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => {
+        setTitle(e.target.value);
+    };
+
+    const handleDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+        setDescription(e.target.value);
     };
 
     return (
@@ -23,14 +34,14 @@ export function CreateTaskModal({ onClose, onCreate }) {
                     <input
                         type="text"
                         value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        onChange={handleTitleChange}
                         placeholder="Task Title"
                         className={modalStyles.input}
                         autoFocus
                     />
                     <textarea
                         value={description}
-                        onChange={(e) => setDescription(e.target.value)}
+                        onChange={handleDescriptionChange}
                         placeholder="Task Description (optional)"
                         className={modalStyles.textarea}
                         rows={4}

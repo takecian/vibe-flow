@@ -1,14 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import styles from './RepoModal.module.css';
-import { pickFolder, checkAITools, updateConfig } from '../api';
-import { FolderOpen, Cpu } from 'lucide-react';
+import { pickFolder, checkAITools } from '../api'; // updateConfig is not directly used here
+import { FolderOpen } from 'lucide-react';
+import { AppConfig, AiToolsCheckResult } from '../types'; // Import AppConfig and AiToolsCheckResult interfaces
 
-export function RepoModal({ onSave, initialConfig, onClose }) {
-    const [path, setPath] = useState('');
-    const [aiTool, setAiTool] = useState('claude');
-    const [availableTools, setAvailableTools] = useState({});
-    const [loading, setLoading] = useState(false);
-    const [checkingTools, setCheckingTools] = useState(true);
+interface RepoModalProps {
+    onSave: (path: string, aiTool: string) => void;
+    initialConfig: AppConfig | null;
+    onClose?: () => void;
+}
+
+export function RepoModal({ onSave, initialConfig, onClose }: RepoModalProps) {
+    const [path, setPath] = useState<string>('');
+    const [aiTool, setAiTool] = useState<string>('claude');
+    const [availableTools, setAvailableTools] = useState<AiToolsCheckResult>({});
+    const [loading, setLoading] = useState<boolean>(false);
+    const [checkingTools, setCheckingTools] = useState<boolean>(true);
 
     useEffect(() => {
         if (initialConfig?.repoPath) setPath(initialConfig.repoPath);
@@ -16,10 +23,9 @@ export function RepoModal({ onSave, initialConfig, onClose }) {
 
         async function check() {
             try {
-                const tools = await checkAITools();
+                const tools: AiToolsCheckResult = await checkAITools();
                 console.log('Available AI Tools:', tools);
                 setAvailableTools(tools);
-                setCheckingTools(false);
             } catch (e) {
                 console.error('Failed to check AI tools', e);
             } finally {
@@ -29,7 +35,7 @@ export function RepoModal({ onSave, initialConfig, onClose }) {
         check();
     }, [initialConfig]);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (path.trim()) {
             onSave(path.trim(), aiTool);
@@ -51,6 +57,14 @@ export function RepoModal({ onSave, initialConfig, onClose }) {
         }
     };
 
+    const handlePathChange = (e: ChangeEvent<HTMLInputElement>) => {
+        setPath(e.target.value);
+    };
+
+    const handleAiToolChange = (e: ChangeEvent<HTMLInputElement>) => {
+        setAiTool(e.target.value);
+    };
+
     return (
         <div className={styles.overlay}>
             <div className={styles.modal}>
@@ -63,7 +77,7 @@ export function RepoModal({ onSave, initialConfig, onClose }) {
                             <input
                                 type="text"
                                 value={path}
-                                onChange={(e) => setPath(e.target.value)}
+                                onChange={handlePathChange}
                                 placeholder="/Users/username/projects/my-repo"
                                 className={styles.input}
                                 autoFocus
@@ -78,17 +92,17 @@ export function RepoModal({ onSave, initialConfig, onClose }) {
                         <label>AI Assistant</label>
                         <div className={styles.toolGrid}>
                             {['claude', 'codex', 'gemini'].map(tool => (
-                                <label key={tool} className={`${styles.toolOption} ${aiTool === tool ? styles.selected : ''} ${!availableTools[tool] ? styles.disabled : ''}`}>
+                                <label key={tool} className={`${styles.toolOption} ${aiTool === tool ? styles.selected : ''} ${!availableTools[tool as keyof AiToolsCheckResult] ? styles.disabled : ''}`}>
                                     <input
                                         type="radio"
                                         name="aiTool"
                                         value={tool}
                                         checked={aiTool === tool}
-                                        onChange={(e) => setAiTool(e.target.value)}
-                                        disabled={!availableTools[tool]}
+                                        onChange={handleAiToolChange}
+                                        disabled={!availableTools[tool as keyof AiToolsCheckResult]}
                                     />
                                     <span className={styles.toolName}>{tool}</span>
-                                    {availableTools[tool] ? <span className={styles.statusAvailable}>●</span> : <span className={styles.statusUnavailable}>○</span>}
+                                    {availableTools[tool as keyof AiToolsCheckResult] ? <span className={styles.statusAvailable}>●</span> : <span className={styles.statusUnavailable}>○</span>}
                                 </label>
                             ))}
                         </div>
