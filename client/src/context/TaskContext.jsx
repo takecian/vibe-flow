@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { fetchTasks, updateTask as updateTaskApi, createTask as createTaskApi, fetchConfig, updateConfig as updateConfigApi } from '../api';
+import { fetchTasks, updateTask as updateTaskApi, createTask as createTaskApi, deleteTask as deleteTaskApi, fetchConfig, updateConfig as updateConfigApi } from '../api';
 
 const TaskContext = createContext();
 
@@ -66,6 +66,11 @@ export function TaskProvider({ children }) {
         return newTask;
     };
 
+    const deleteTask = async (taskId) => {
+        await deleteTaskApi(taskId);
+        setTasks(prev => prev.filter(t => t.id !== taskId));
+    };
+
     return (
         <TaskContext.Provider value={{
             tasks,
@@ -75,6 +80,7 @@ export function TaskProvider({ children }) {
             setRepoPath,
             moveTask,
             addTask,
+            deleteTask,
             refreshTasks
         }}>
             {children}

@@ -38,6 +38,14 @@ export async function updateTask(id, updates) {
     return res.json();
 }
 
+export async function deleteTask(id) {
+    const res = await fetch(`${API_URL}/tasks/${id}`, {
+        method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to delete task');
+    return res.json();
+}
+
 export async function createWorktree(taskId, branchName) {
     const res = await fetch(`${API_URL}/git/worktree`, {
         method: 'POST',

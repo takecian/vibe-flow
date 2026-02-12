@@ -82,33 +82,62 @@
 .actions {
     display: flex;
     gap: 12px;
+    position: relative; /* For positioning the dropdown */
 }
 
-.actionButton {
+.optionsMenu {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.iconButton {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.iconButton:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    min-width: 120px;
+    z-index: 10;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.dropdownItem {
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
+    width: 100%;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    color: var(--text-primary);
     cursor: pointer;
-    transition: all 0.2s;
+    text-align: left;
+    font-size: 14px;
 }
 
-.actionButton:hover {
-    background-color: var(--accent-color);
-    color: white;
-    border-color: var(--accent-color);
-}
-
-.actionButton.active {
-    background-color: var(--accent-color);
-    color: white;
-    border-color: var(--accent-color);
+.dropdownItem:hover {
+    background-color: var(--bg-tertiary);
 }
 
 .content {
