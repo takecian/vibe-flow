@@ -2,17 +2,19 @@ import * as pty from 'node-pty';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
-import { Server, Socket } from 'socket.io'; // Import specific types from socket.io
-import { Task, AppConfig } from './types'; // Import Task and AppConfig interfaces
+import { Server, Socket } from 'socket.io';
+import { Task, AppConfig } from './types';
 
-// Define a type for the getTaskById function
 type GetTaskByIdFunction = (taskId: string) => Promise<Task | undefined>;
 
-// Delay in milliseconds to wait for shell initialization before running AI command
-// 800ms allows sufficient time for zsh/bash shell to initialize and be ready for input
 const SHELL_INITIALIZATION_DELAY_MS = 800;
+const shell = os.platform() === 'win32' ? 'powershell.exe' : 'zsh';
 
-/** Escape a string for use inside double-quoted zsh (and bash) string */
+interface TerminalSession {
+    pty: pty.IPty;
+    socket: Socket | null;
+}
+
 function escapeForShellDoubleQuoted(s: string): string {
     return s
         .replace(/\\/g, '\\\\')
@@ -33,125 +35,139 @@ function buildAiPrompt(task: Task): string {
     return parts.join('\n');
 }
 
-function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTaskByIdFunction): void {
-    const shell = os.platform() === 'win32' ? 'powershell.exe' : 'zsh';
-    const sessions: { [key: string]: pty.IPty } = {}; // Type the sessions object
+function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTaskByIdFunction) {
+    const sessions: { [key: string]: TerminalSession } = {};
+
+    function spawnPty(workingDir: string, termId: string, taskEnv: NodeJS.ProcessEnv = {}): pty.IPty {
+        const ptyProcess = pty.spawn(shell === 'zsh' ? '/bin/zsh' : shell, [], {
+            name: 'xterm-color',
+            cols: 80,
+            rows: 30,
+            cwd: workingDir,
+            env: { ...process.env, ...taskEnv } as { [key: string]: string }
+        });
+        const session: TerminalSession = { pty: ptyProcess, socket: null };
+        sessions[termId] = session;
+        ptyProcess.onData((data) => {
+            if (session.socket) session.socket.emit(`terminal:data:${termId}`, data);
+        });
+        return ptyProcess;
+    }
+
+    function attachSocketToSession(socket: Socket, session: TerminalSession, termId: string, cols?: number, rows?: number): void {
+        session.socket = socket;
+        
+        // Remove any existing listeners for this termId to prevent duplicates
+        socket.removeAllListeners(`terminal:input:${termId}`);
+        socket.removeAllListeners(`terminal:resize:${termId}`);
+        socket.removeAllListeners('disconnect');
+        
+        socket.on(`terminal:input:${termId}`, (data: string) => {
+            session.pty.write(data);
+        });
+        socket.on(`terminal:resize:${termId}`, ({ cols: c, rows: r }: { cols: number; rows: number }) => {
+            session.pty.resize(c || 80, r || 30);
+        });
+        socket.on('disconnect', () => {
+            session.socket = null;
+        });
+        if (cols && rows) session.pty.resize(cols, rows);
+    }
+
+    /** Create terminal for a task when task is created (worktree must already exist). */
+    async function ensureTerminalForTask(taskId: string): Promise<void> {
+        if (sessions[taskId]) return;
+        const { repoPath } = getState();
+        if (!repoPath) return;
+        const worktreePath = path.join(repoPath, '.vibe-flow', 'worktrees', taskId);
+        if (!fs.existsSync(worktreePath)) return;
+        try {
+            fs.accessSync(worktreePath, fs.constants.R_OK | fs.constants.X_OK);
+        } catch {
+            return;
+        }
+        spawnPty(worktreePath, taskId);
+        console.log(`[Terminal] Created terminal for task ${taskId} (worktree: ${worktreePath})`);
+    }
+
+    /** Run AI tool with task context (call when task is moved to in progress). */
+    async function runAiForTask(taskId: string): Promise<void> {
+        const session = sessions[taskId];
+        if (!session) return;
+        const { aiTool } = getState();
+        if (!aiTool) return;
+        const safeAiToolPattern = /^[a-zA-Z0-9._-]+$/;
+        if (!safeAiToolPattern.test(aiTool)) return;
+        const task = await getTaskById(taskId);
+        if (!task || task.status !== 'inprogress') return;
+        const prompt = buildAiPrompt(task);
+        const escaped = escapeForShellDoubleQuoted(prompt);
+        const command = `${aiTool} "${escaped}"\n`;
+        setTimeout(() => {
+            try {
+                session.pty.write(command);
+                console.log(`[Terminal] Ran ${aiTool} with task context for task ${taskId}`);
+            } catch (e) {
+                console.error('[Terminal] Failed to run AI command:', e);
+            }
+        }, SHELL_INITIALIZATION_DELAY_MS);
+    }
 
     io.on('connection', (socket: Socket) => {
-        socket.on('terminal:create', async ({ cols, rows, taskId }: { cols: number, rows: number, taskId: string }) => {
-            const { repoPath, aiTool } = getState();
-
+        socket.on('terminal:create', async ({ cols, rows, taskId }: { cols: number; rows: number; taskId: string }) => {
+            const { repoPath } = getState();
             if (!repoPath) {
                 socket.emit('terminal:error', 'Repository path not configured');
                 return;
             }
 
             const termId = taskId || 'default';
+            let session = sessions[termId];
 
-            if (sessions[termId]) {
-                sessions[termId].kill();
+            if (session) {
+                // Reuse existing terminal: attach this socket
+                attachSocketToSession(socket, session, termId, cols, rows);
+                return;
             }
 
+            // No existing session: spawn new (e.g. old task or default)
             let workingDir = repoPath;
-            const taskEnv: NodeJS.ProcessEnv = {}; // Environment variables for the task
-            let taskForAi: Task | undefined;
+            const taskEnv: NodeJS.ProcessEnv = {};
 
             if (taskId && taskId !== 'default') {
                 const task = await getTaskById(taskId);
                 if (task) {
-                    taskForAi = task;
-                    // Only inject details if the task is "in progress"
                     if (task.status === 'inprogress') {
                         taskEnv.TASK_ID = task.id;
                         taskEnv.TASK_TITLE = task.title;
                         taskEnv.TASK_DESCRIPTION = task.description;
                         taskEnv.TASK_STATUS = task.status;
-                        console.log(`[Terminal] Injected task details for task ${task.id} into environment.`);
                     }
-
                     const worktreePath = path.join(repoPath, '.vibe-flow', 'worktrees', taskId);
-                    if (fs.existsSync(worktreePath)) {
-                        workingDir = worktreePath;
-                    }
+                    if (fs.existsSync(worktreePath)) workingDir = worktreePath;
                 }
             }
 
-            // Fallback if workingDir doesn't exist
             if (!fs.existsSync(workingDir)) {
-                console.warn(`Working directory ${workingDir} does not exist. Falling back to home directory.`);
+                console.warn(`[Terminal] Working dir ${workingDir} missing, using home`);
                 workingDir = os.homedir();
             }
 
-            console.log(`[Terminal] Spawning ${shell} in ${workingDir}`);
-            console.log(`[Terminal] Cols: ${cols}, Rows: ${rows}`);
-
-            let ptyProcess: pty.IPty; // Type ptyProcess
             try {
-                // Verify directory exists specifically before spawn
-                try {
-                    fs.accessSync(workingDir, fs.constants.R_OK | fs.constants.X_OK);
-                } catch (err) {
-                    console.error(`[Terminal] Directory not accessible: ${workingDir}`, err);
-                    socket.emit('terminal:error', `Directory not accessible: ${workingDir}`);
-                    return;
-                }
-
-                ptyProcess = pty.spawn(shell === 'zsh' ? '/bin/zsh' : shell, [], {
-                    name: 'xterm-color',
-                    cols: cols || 80,
-                    rows: rows || 30,
-                    cwd: workingDir,
-                    env: { ...process.env, ...taskEnv } as { [key: string]: string } // Merge existing and task-specific envs
-                });
-            } catch (spawnError: any) {
-                console.error('[Terminal] Spawn failed:', spawnError);
-                socket.emit('terminal:error', 'Failed to spawn terminal process');
+                fs.accessSync(workingDir, fs.constants.R_OK | fs.constants.X_OK);
+            } catch (err: any) {
+                socket.emit('terminal:error', `Directory not accessible: ${workingDir}`);
                 return;
             }
 
-            sessions[termId] = ptyProcess;
-
-            ptyProcess.onData((data) => {
-                socket.emit(`terminal:data:${termId}`, data);
-            });
-
-            socket.on(`terminal:input:${termId}`, (data: string) => {
-                ptyProcess.write(data);
-            });
-
-            socket.on(`terminal:resize:${termId}`, ({ cols, rows }: { cols: number, rows: number }) => {
-                ptyProcess.resize(cols, rows);
-            });
-
-            // After shell is ready, run selected AI with task context when we have a task
-            if (taskForAi && aiTool) {
-                // Validate aiTool to prevent command injection - only allow simple command names
-                // without path traversal (no slashes allowed for security)
-                const safeAiToolPattern = /^[a-zA-Z0-9._-]+$/;
-                if (!safeAiToolPattern.test(aiTool)) {
-                    console.warn(`[Terminal] AI tool "${aiTool}" contains unsafe characters or paths, skipping auto-execution`);
-                } else {
-                    const prompt = buildAiPrompt(taskForAi);
-                    const escaped = escapeForShellDoubleQuoted(prompt);
-                    const command = `${aiTool} "${escaped}"\n`;
-                    // Capture task reference for use inside timeout callback
-                    const taskIdForLogging = taskForAi.id;
-                    setTimeout(() => {
-                        try {
-                            ptyProcess.write(command);
-                            console.log(`[Terminal] Ran ${aiTool} with task context for task ${taskIdForLogging}`);
-                        } catch (e) {
-                            console.error('[Terminal] Failed to run AI command:', e);
-                        }
-                    }, SHELL_INITIALIZATION_DELAY_MS);
-                }
-            }
-
-            socket.on('disconnect', () => {
-                // Cleanup if necessary
-            });
+            console.log(`[Terminal] Spawning ${shell} in ${workingDir}`);
+            const ptyProcess = spawnPty(workingDir, termId, taskEnv);
+            session = sessions[termId];
+            attachSocketToSession(socket, session, termId, cols, rows);
         });
     });
+
+    return { ensureTerminalForTask, runAiForTask };
 }
 
 export { setupTerminal };
