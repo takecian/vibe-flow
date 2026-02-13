@@ -1,57 +1,65 @@
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTasks } from '../context/TaskContext';
 import { TerminalView } from './TerminalView';
-import { X, FileText, ArrowLeft, Terminal, MoreVertical, Trash2 } from 'lucide-react';
-import { Task } from '../types'; // Import the Task interface
+import { X, FileText, Terminal, MoreVertical, Trash2, GitBranch } from 'lucide-react';
+import { getGitDiff } from '../api';
+import { useTerminals } from '../context/TerminalContext';
+import { Task } from '../types';
 
 interface TaskDetailProps {
     taskId?: string;
     onClose?: () => void;
 }
 
-interface TaskParams {
-    id: string;
-}
-
 export function TaskDetail({ taskId, onClose }: TaskDetailProps) {
-    const { id } = useParams<TaskParams>();
+    const { id } = useParams<string>();
     const navigate = useNavigate();
     const { tasks, deleteTask } = useTasks();
+    const { getTerminalSession, destroyTerminalSession } = useTerminals();
 
     // Resolve ID from props (side panel) or params (route)
     const effectiveId = taskId || id;
     const task: Task | undefined = tasks.find(t => t.id === effectiveId);
-    const [activeTab, setActiveTab] = useState<'terminal' | 'details'>('terminal');
+    const [activeTab, setActiveTab] = useState<'terminal' | 'details' | 'diff'>('terminal');
+    const [diff, setDiff] = useState<string>('');
+    const [loadingDiff, setLoadingDiff] = useState<boolean>(false);
     const [showOptionsMenu, setShowOptionsMenu] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (activeTab === 'diff' && task) {
+            const fetchDiff = async () => {
+                setLoadingDiff(true);
+                try {
+                    const data = await getGitDiff(task.id);
+                    setDiff(data.diff || 'No changes found.');
+                } catch (e) {
+                    setDiff('Error fetching diff.');
+                } finally {
+                    setLoadingDiff(false);
+                }
+            };
+            fetchDiff();
+        }
+    }, [activeTab, task?.id]);
 
     if (!task) return null; // Don't show loading in sidebar, just null if not found
 
-    const getStatusBadgeClasses = (status: string) => {
-        const baseClasses = 'text-xs px-2 py-0.5 rounded-xl uppercase font-semibold';
-        const statusClasses = {
-            todo: 'bg-slate-400 text-slate-900',
-            inprogress: 'bg-blue-500 text-white',
-            done: 'bg-green-500 text-white',
-            inreview: 'bg-yellow-500 text-white',
-            cancelled: 'bg-red-500 text-white'
-        };
-        return `${baseClasses} ${statusClasses[status as keyof typeof statusClasses] || 'bg-slate-400 text-slate-900'}`;
-    };
 
-    const containerClasses = onClose 
+    const containerClasses = onClose
         ? 'h-screen flex flex-col bg-slate-900 fixed top-0 right-0 bottom-0 w-1/2 min-w-[600px] z-[1000] shadow-[-4px_0_20px_rgba(0,0,0,0.5)] border-l border-slate-600'
-        : 'h-screen flex flex-col bg-slate-900';
+        : 'flex-1 flex flex-col bg-slate-900 overflow-hidden';
 
     const getTabButtonClasses = (isActive: boolean) => {
         const baseClasses = 'px-3 py-1.5 text-sm border-0 rounded-md cursor-pointer flex items-center gap-1.5 transition-colors';
-        return isActive 
+        return isActive
             ? `${baseClasses} bg-blue-500 text-white`
             : `${baseClasses} bg-transparent text-slate-400 hover:bg-slate-600 hover:text-slate-50`;
     };
 
     const handleDeleteTask = async () => {
         if (window.confirm(`Are you sure you want to delete task "${task.title}"?`)) {
+            destroyTerminalSession(task.id);
             await deleteTask(task.id);
             if (onClose) {
                 onClose(); // Close side panel
@@ -64,18 +72,13 @@ export function TaskDetail({ taskId, onClose }: TaskDetailProps) {
     return (
         <div className={containerClasses}>
             <header className="px-6 py-4 border-b border-slate-600 flex items-center gap-4 bg-slate-800">
-                {onClose ? (
+                {onClose && (
                     <button className="bg-transparent border-0 text-slate-400 cursor-pointer p-2 rounded-full flex items-center justify-center hover:bg-slate-600 hover:text-slate-50" onClick={onClose}>
                         <X size={18} />
-                    </button>
-                ) : (
-                    <button className="bg-transparent border-0 text-slate-400 cursor-pointer p-2 rounded-full flex items-center justify-center hover:bg-slate-600 hover:text-slate-50" onClick={() => navigate('/')}>
-                        <ArrowLeft size={18} />
                     </button>
                 )}
                 <div className="flex-1 flex items-center gap-3">
                     <h1 className="m-0 text-lg font-semibold">{task.title}</h1>
-                    <span className={getStatusBadgeClasses(task.status)}>{task.status}</span>
                 </div>
                 <div className="flex gap-3 relative">
                     <button className={getTabButtonClasses(activeTab === 'details')} onClick={() => setActiveTab('details')}>
@@ -83,6 +86,9 @@ export function TaskDetail({ taskId, onClose }: TaskDetailProps) {
                     </button>
                     <button className={getTabButtonClasses(activeTab === 'terminal')} onClick={() => setActiveTab('terminal')}>
                         <Terminal size={16} /> Terminal
+                    </button>
+                    <button className={getTabButtonClasses(activeTab === 'diff')} onClick={() => setActiveTab('diff')}>
+                        <GitBranch size={16} /> Diff
                     </button>
                     <div className="relative flex items-center">
                         <button className="bg-transparent border-0 text-slate-400 cursor-pointer p-2 rounded-full flex items-center justify-center hover:bg-slate-600 hover:text-slate-50" onClick={() => setShowOptionsMenu(!showOptionsMenu)}>
@@ -99,20 +105,29 @@ export function TaskDetail({ taskId, onClose }: TaskDetailProps) {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-hidden p-0 flex">
-                {activeTab === 'details' && (
-                    <div className="flex-1 p-6 overflow-y-auto">
-                        <div className="bg-slate-800 p-6 rounded-xl border border-slate-600 max-w-[800px] mx-auto">
-                            <h3 className="mt-0 mb-4 text-base text-slate-400 uppercase tracking-wider">Description</h3>
-                            <p className="whitespace-pre-wrap leading-relaxed text-slate-50">{task.description || 'No description provided.'}</p>
+            <main className="flex-1 overflow-hidden p-0 flex relative">
+                <div className={`flex-1 p-6 overflow-y-auto ${activeTab !== 'details' ? 'hidden' : ''}`}>
+                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-600 max-w-[800px] mx-auto">
+                        <h3 className="mt-0 mb-4 text-base text-slate-400 uppercase tracking-wider">Description</h3>
+                        <p className="whitespace-pre-wrap leading-relaxed text-slate-50">{task.description || 'No description provided.'}</p>
+                    </div>
+                </div>
+
+                <div className={`flex-1 bg-black p-0 ${activeTab === 'terminal' ? 'flex' : 'hidden'}`}>
+                    <TerminalView taskId={task.id} />
+                </div>
+
+                <div className={`flex-1 p-6 overflow-y-auto bg-slate-900 ${activeTab !== 'diff' ? 'hidden' : ''}`}>
+                    {loadingDiff ? (
+                        <div className="flex justify-center items-center h-40 text-slate-500">Loading diff...</div>
+                    ) : (
+                        <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 font-mono text-xs overflow-x-auto">
+                            <pre className="text-slate-300 whitespace-pre font-mono">
+                                {diff || 'No changes to show.'}
+                            </pre>
                         </div>
-                    </div>
-                )}
-                {activeTab === 'terminal' && (
-                    <div className="flex-1 bg-black p-0">
-                        <TerminalView taskId={task.id} />
-                    </div>
-                )}
+                    )}
+                </div>
             </main>
         </div>
     );

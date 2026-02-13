@@ -67,6 +67,13 @@ export async function getGitStatus(): Promise<GitStatus> {
     return res.json();
 }
 
+export async function getGitDiff(taskId?: string): Promise<{ diff: string }> {
+    const url = new URL(`${API_URL}/git/diff`);
+    if (taskId) url.searchParams.append('taskId', taskId);
+    const res = await fetch(url.toString());
+    return res.json();
+}
+
 export async function pickFolder(): Promise<PickFolderResult> {
     const res = await fetch(`${API_URL}/system/pick-folder`);
     return res.json();

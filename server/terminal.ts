@@ -56,12 +56,12 @@ function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTa
 
     function attachSocketToSession(socket: Socket, session: TerminalSession, termId: string, cols?: number, rows?: number): void {
         session.socket = socket;
-        
+
         // Remove any existing listeners for this termId to prevent duplicates
         socket.removeAllListeners(`terminal:input:${termId}`);
         socket.removeAllListeners(`terminal:resize:${termId}`);
         socket.removeAllListeners('disconnect');
-        
+
         socket.on(`terminal:input:${termId}`, (data: string) => {
             session.pty.write(data);
         });
@@ -99,7 +99,7 @@ function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTa
         const safeAiToolPattern = /^[a-zA-Z0-9._-]+$/;
         if (!safeAiToolPattern.test(aiTool)) return;
         const task = await getTaskById(taskId);
-        if (!task || task.status !== 'inprogress') return;
+        if (!task) return;
         const prompt = buildAiPrompt(task);
         const escaped = escapeForShellDoubleQuoted(prompt);
         const command = `${aiTool} "${escaped}"\n`;
@@ -137,12 +137,9 @@ function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTa
             if (taskId && taskId !== 'default') {
                 const task = await getTaskById(taskId);
                 if (task) {
-                    if (task.status === 'inprogress') {
-                        taskEnv.TASK_ID = task.id;
-                        taskEnv.TASK_TITLE = task.title;
-                        taskEnv.TASK_DESCRIPTION = task.description;
-                        taskEnv.TASK_STATUS = task.status;
-                    }
+                    taskEnv.TASK_ID = task.id;
+                    taskEnv.TASK_TITLE = task.title;
+                    taskEnv.TASK_DESCRIPTION = task.description;
                     const worktreePath = path.join(repoPath, '.vibe-flow', 'worktrees', taskId);
                     if (fs.existsSync(worktreePath)) workingDir = worktreePath;
                 }
@@ -161,7 +158,7 @@ function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTa
             }
 
             console.log(`[Terminal] Spawning ${shell} in ${workingDir}`);
-            const ptyProcess = spawnPty(workingDir, termId, taskEnv);
+            spawnPty(workingDir, termId, taskEnv);
             session = sessions[termId];
             attachSocketToSession(socket, session, termId, cols, rows);
         });

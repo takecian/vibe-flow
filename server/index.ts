@@ -14,6 +14,7 @@ import { setupSystemRoutes } from './system';
 import { initDB } from './db';
 import fs from 'fs';
 import { AppConfig } from './types';
+import { loadConfig, saveConfig } from './config';
 
 // Extend the Express Request type to include appState
 declare global {
@@ -24,12 +25,8 @@ declare global {
     }
 }
 
-// Initial State
-let STATE: AppConfig = {
-    repoPath: process.env.REPO_PATH || '',
-    aiTool: process.env.AI_TOOL || 'claude',
-    copyFiles: ''
-};
+// Initial State loaded from persistent config
+let STATE: AppConfig = loadConfig();
 
 const app: Application = express();
 app.use(cors());
@@ -68,6 +65,7 @@ app.post('/api/config', async (req: Request, res: Response) => {
         STATE.copyFiles = typeof copyFiles === 'string' ? copyFiles : '';
     }
 
+    await saveConfig(STATE);
     res.json(STATE);
 });
 

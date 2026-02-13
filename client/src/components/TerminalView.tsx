@@ -1,10 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Terminal } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
-import { io, Socket } from 'socket.io-client';
+import { useEffect, useRef } from 'react';
+import { useTerminals } from '../context/TerminalContext';
 import 'xterm/css/xterm.css';
-
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface TerminalViewProps {
     taskId: string;
@@ -12,93 +8,57 @@ interface TerminalViewProps {
 
 export function TerminalView({ taskId }: TerminalViewProps) {
     const terminalRef = useRef<HTMLDivElement>(null);
-    const socketRef = useRef<Socket | null>(null);
-    const xtermRef = useRef<Terminal | null>(null);
-    const fitAddonRef = useRef<FitAddon | null>(null);
-
-    const [connected, setConnected] = useState<boolean>(false);
+    const { getTerminalSession } = useTerminals();
+    const sessionRef = useRef<any>(null);
 
     useEffect(() => {
-        // Initialize Socket
-        const socket: Socket = io(SOCKET_URL);
-        socketRef.current = socket;
-
-        socket.on('connect', () => {
-            setConnected(true);
-            socket.emit('terminal:create', { cols: 80, rows: 24, taskId });
-        });
-
-        socket.on(`terminal:data:${taskId || 'default'}`, (data: string) => {
-            xtermRef.current?.write(data);
-        });
-
-        socket.on('terminal:error', (message: string) => {
-            console.error('Terminal error from server:', message);
-            xtermRef.current?.write(`\r\nError: ${message}\r\n`);
-        });
-
-        // Initialize xterm
-        const term: Terminal = new Terminal({
-            cursorBlink: true,
-            theme: { background: '#0f172a', foreground: '#f8fafc', cursor: '#3b82f6' },
-            fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-            fontSize: 14
-        });
-
-        const fitAddon: FitAddon = new FitAddon();
-        term.loadAddon(fitAddon);
-
-        // Handle input
-        term.onData((data: string) => {
-            if (socketRef.current?.connected) {
-                socketRef.current.emit(`terminal:input:${taskId || 'default'}`, data);
-            }
-        });
+        const session = getTerminalSession(taskId);
+        sessionRef.current = session;
+        const { terminal, fitAddon, socket } = session;
 
         const openTerminal = () => {
             if (terminalRef.current) {
-                term.open(terminalRef.current);
-                xtermRef.current = term;
-                fitAddonRef.current = fitAddon;
-                setTimeout(() => {
-                    try {
-                        fitAddon.fit();
-                        const { cols, rows } = term;
-                        socketRef.current?.emit(`terminal:resize:${taskId || 'default'}`, { cols, rows });
-                    } catch (e) {
-                        console.error("Fit error ignored:", e);
-                    }
-                }, 0);
+                // Clear existing content to prevent layering
+                while (terminalRef.current.firstChild) {
+                    terminalRef.current.removeChild(terminalRef.current.firstChild);
+                }
+
+                terminal.open(terminalRef.current);
+                terminal.focus();
+
+                // Use a slightly longer delay or requestAnimationFrame to ensure DOM is ready
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        try {
+                            fitAddon.fit();
+                            const { cols, rows } = terminal;
+                            if (cols > 0 && rows > 0) {
+                                socket.emit(`terminal:resize:${taskId || 'default'}`, { cols, rows });
+                            }
+                        } catch (e) {
+                            console.error("Fit error ignored:", e);
+                        }
+                    }, 50);
+                });
             }
         };
 
         let resizeObserver: ResizeObserver | undefined;
 
         if (terminalRef.current) {
-            // Initial check if dimensions are already available
-            if (terminalRef.current.clientWidth > 0 && terminalRef.current.clientHeight > 0) {
-                openTerminal();
-            }
+            // Initial mount
+            openTerminal();
 
             resizeObserver = new ResizeObserver(() => {
                 if (!terminalRef.current) return;
-
-                // Lazy open if not yet opened
-                if (!xtermRef.current && terminalRef.current.clientWidth > 0 && terminalRef.current.clientHeight > 0) {
-                    openTerminal();
-                }
-
-                // Resize if already opened
-                if (xtermRef.current && terminalRef.current.clientWidth > 0 && terminalRef.current.clientHeight > 0) {
-                    try {
-                        fitAddon.fit();
-                        const { cols, rows } = term;
-                        if (cols > 0 && rows > 0) {
-                            socketRef.current?.emit(`terminal:resize:${taskId || 'default'}`, { cols, rows });
-                        }
-                    } catch (e) {
-                        console.error("Fit error ignored:", e);
+                try {
+                    fitAddon.fit();
+                    const { cols, rows } = terminal;
+                    if (cols > 0 && rows > 0) {
+                        socket.emit(`terminal:resize:${taskId || 'default'}`, { cols, rows });
                     }
+                } catch (e) {
+                    console.error("Fit error ignored:", e);
                 }
             });
             resizeObserver.observe(terminalRef.current);
@@ -106,15 +66,20 @@ export function TerminalView({ taskId }: TerminalViewProps) {
 
         return () => {
             if (resizeObserver) resizeObserver.disconnect();
-            socket.disconnect();
-            term.dispose();
-            xtermRef.current = null;
+
+            // Detach terminal element from DOM to prevent it from sticking around
+            // when switching tasks or Tabs, which might cause layout issues.
+            // Note: We don't dispose() the terminal as it is managed by TerminalContext
+            const element = terminal.element;
+            if (element && element.parentNode) {
+                element.parentNode.removeChild(element);
+            }
         };
-    }, [taskId]);
+    }, [taskId, getTerminalSession]);
 
     return (
-        <div className="w-full h-full bg-slate-900 p-2 overflow-hidden rounded-lg border border-slate-600 min-w-[100px] min-h-[100px]">
-            <div ref={terminalRef} className="w-full h-full" />
+        <div className="w-full h-full bg-[#0f172a] relative overflow-hidden">
+            <div ref={terminalRef} className="absolute inset-0" />
         </div>
     );
 }

@@ -1,47 +1,25 @@
 import React, { useState } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useTasks } from '../context/TaskContext';
-import { useNavigate } from 'react-router-dom';
 import { RepoModal } from './RepoModal';
 import { CreateTaskModal } from './CreateTaskModal';
 import { TaskDetail } from './TaskDetail';
 import { Plus, Github, Folder, Settings } from 'lucide-react';
 import { Task, AppConfig } from '../types'; // Import Task and AppConfig interfaces
 
-interface Columns {
-    todo: string;
-    inprogress: string;
-    inreview: string;
-    done: string;
-    cancelled: string;
-}
-
-const COLUMNS: Columns = {
-    todo: 'To Do',
-    inprogress: 'In Progress',
-    inreview: 'In Review',
-    done: 'Done',
-    cancelled: 'Cancelled'
-};
 
 export function KanbanBoard() {
-    const { tasks, moveTask, addTask, isConnected, config, setRepoPath, loading } = useTasks();
-    const navigate = useNavigate();
+    // We no longer need moveTask or onDragEnd for the board layout
+    const { tasks, addTask, isConnected, config, setRepoPath } = useTasks();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
     const [showSettings, setShowSettings] = useState<boolean>(false);
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
-    if (loading) {
-        return <div className="flex justify-center items-center h-screen text-xl text-slate-400 bg-slate-900">Loading...</div>;
-    }
-
-    const onDragEnd = (result: DropResult) => {
-        if (!result.destination) return;
-        const { source, destination, draggableId } = result;
-        if (source.droppableId !== destination.droppableId) {
-            moveTask(draggableId, destination.droppableId as Task['status']);
+    // Default to the first in-progress task or the first task if none selected
+    React.useEffect(() => {
+        if (!selectedTaskId && tasks.length > 0) {
+            setSelectedTaskId(tasks[0].id);
         }
-    };
+    }, [tasks, selectedTaskId]);
 
     const handleCreateTask = async (title: string, description: string) => {
         await addTask(title, description);
@@ -78,82 +56,92 @@ export function KanbanBoard() {
                 />
             )}
 
-            {selectedTaskId && (
-                <TaskDetail
-                    taskId={selectedTaskId}
-                    onClose={() => setSelectedTaskId(null)}
-                />
-            )}
-
-            <header className="px-6 py-4 border-b border-slate-600 flex justify-between items-center bg-slate-800">
+            <header className="px-6 py-4 border-b border-slate-600 flex justify-between items-center bg-slate-800 shadow-lg z-10">
                 <div className="flex items-center gap-4">
                     <h1 className="m-0 text-xl font-semibold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">Vibetree</h1>
                     {(isConnected || (config?.repoPath && config.repoPath.trim())) && (
-                        <div className="flex items-center gap-1.5 bg-slate-600 text-slate-400 px-2.5 py-1 rounded-full text-sm font-medium border border-slate-600">
-                            <Folder size={14} />
+                        <div className="flex items-center gap-1.5 bg-slate-700/50 text-slate-400 px-2.5 py-1 rounded-full text-xs font-medium border border-slate-600">
+                            <Folder size={12} />
                             <span>{repoName}</span>
                         </div>
                     )}
                 </div>
                 <div className="flex items-center gap-3">
-                    <button 
-                        onClick={() => setShowSettings(true)} 
-                        className="bg-transparent border-0 cursor-pointer text-slate-400 p-2 rounded-md flex items-center justify-center transition-all hover:bg-slate-600 hover:text-slate-50" 
+                    <button
+                        onClick={() => setShowSettings(true)}
+                        className="bg-transparent border-0 cursor-pointer text-slate-400 p-2 rounded-md flex items-center justify-center transition-all hover:bg-slate-700 hover:text-slate-50"
                         title="Settings"
                     >
-                        <Settings size={20} />
+                        <Settings size={18} />
                     </button>
-                    <button 
-                        onClick={() => setIsCreateModalOpen(true)} 
-                        className="flex items-center gap-1.5 bg-blue-500 text-white border-0 px-4 py-2 rounded-md font-medium cursor-pointer transition-colors hover:bg-blue-600 disabled:bg-slate-600 disabled:text-slate-400 disabled:cursor-not-allowed" 
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="flex items-center gap-1.5 bg-blue-600 text-white border-0 px-4 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed shadow-sm"
                         disabled={!isConnected}
                     >
-                        <Plus size={16} /> New Task
+                        <Plus size={14} /> New Task
                     </button>
                 </div>
             </header>
 
-            <DragDropContext onDragEnd={onDragEnd}>
-                <div className="flex flex-1 overflow-x-auto p-6 gap-6">
-                    {Object.entries(COLUMNS).map(([columnId, title]) => (
-                        <Droppable key={columnId} droppableId={columnId}>
-                            {(provided) => (
+            <div className="flex flex-1 overflow-hidden">
+                {/* Task List Sidebar */}
+                <div className="w-80 flex flex-col border-r border-slate-700 bg-slate-800/40 backdrop-blur-sm overflow-hidden">
+                    <div className="p-4 border-b border-slate-700/50 flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">All Tasks ({tasks.length})</span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5">
+                        {tasks.length === 0 ? (
+                            <div className="p-8 text-center text-slate-500 text-sm">
+                                No tasks found. Create one to get started.
+                            </div>
+                        ) : (
+                            tasks.map((task: Task) => (
                                 <div
-                                    ref={provided.innerRef}
-                                    {...provided.droppableProps}
-                                    className="flex-1 min-w-[300px] bg-slate-800 rounded-xl p-4 flex flex-col"
+                                    key={task.id}
+                                    className={`p-3 rounded-lg cursor-pointer transition-all border ${selectedTaskId === task.id
+                                        ? 'bg-blue-500/10 border-blue-500/30'
+                                        : 'bg-transparent border-transparent hover:bg-slate-700/30 hover:border-slate-600/30'
+                                        }`}
+                                    onClick={() => setSelectedTaskId(task.id)}
                                 >
-                                    <h2 className="m-0 mb-4 text-sm font-semibold text-slate-400 uppercase tracking-wider">{title}</h2>
-                                    <div className="flex-1 overflow-y-auto flex flex-col gap-3">
-                                        {tasks.filter(t => t.status === columnId).map((task: Task, index: number) => (
-                                            <Draggable key={task.id} draggableId={task.id} index={index}>
-                                                {(provided) => (
-                                                    <div
-                                                        ref={provided.innerRef}
-                                                        {...provided.draggableProps}
-                                                        {...provided.dragHandleProps}
-                                                        className="bg-slate-600 rounded-lg p-3 cursor-grab transition-all border border-slate-600 hover:-translate-y-0.5 hover:shadow-md hover:border-blue-500"
-                                                        onClick={() => setSelectedTaskId(task.id)}
-                                                    >
-                                                        <div>
-                                                            <span className="font-medium block mb-2">{task.title}</span>
-                                                        </div>
-                                                        <div className="flex justify-between items-center text-xs text-slate-400">
-                                                            <span>#{task.id.slice(0, 4)}</span>
-                                                            {task.branchName && <div className="flex items-center gap-1 bg-blue-500/10 text-blue-300 px-1.5 py-0.5 rounded"><Github size={12} /> {task.branchName}</div>}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </Draggable>
-                                        ))}
-                                        {provided.placeholder}
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <span className={`font-medium text-sm leading-snug ${selectedTaskId === task.id ? 'text-blue-400' : 'text-slate-200'}`}>
+                                                {task.title}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono">
+                                            <span>{task.id.slice(0, 8)}</span>
+                                            {task.branchName && (
+                                                <div className="flex items-center gap-1 text-slate-400">
+                                                    <Github size={10} />
+                                                    <span className="truncate max-w-[120px] font-sans italic">{task.branchName}</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            )}
-                        </Droppable>
-                    ))}
+                            ))
+                        )}
+                    </div>
                 </div>
-            </DragDropContext>
+
+                {/* Main Content Area */}
+                <div className="flex-1 flex flex-col bg-slate-900 overflow-hidden relative">
+                    {selectedTaskId ? (
+                        <TaskDetail key={selectedTaskId} taskId={selectedTaskId} />
+                    ) : (
+                        <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-center p-8 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900 to-black">
+                            <div className="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mb-6 border border-slate-700/50 backdrop-blur-sm grayscale opacity-50">
+                                <Plus size={32} className="text-slate-600" />
+                            </div>
+                            <h2 className="text-xl font-light text-slate-400 mb-2">Select a Task</h2>
+                            <p className="max-w-xs text-sm text-slate-600 leading-relaxed font-light">Select a task from the sidebar to view details, open the terminal, and use AI features.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

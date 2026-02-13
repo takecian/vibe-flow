@@ -49,7 +49,6 @@ function setupTaskRoutes(
             id: uuidv4(),
             title,
             description,
-            status: status || 'todo',
             createdAt: new Date().toISOString(),
             branchName: `feature/task-${Date.now()}`
         };
@@ -59,9 +58,10 @@ function setupTaskRoutes(
         // Auto-create worktree and terminal for new task
         try {
             const { repoPath } = getState();
-            await createWorktree(repoPath, newTask.id, newTask.branchName);
             console.log(`Auto-created worktree for task ${newTask.id}`);
             await ensureTerminalForTask(newTask.id);
+            // Run AI tool automatically after terminal is ensured
+            runAiForTask(newTask.id).catch((e) => console.error(`[Tasks] runAiForTask(${newTask.id}):`, e));
         } catch (e: any) {
             console.error(`Failed to auto-create worktree/terminal for task ${newTask.id}:`, e);
         }
@@ -75,14 +75,9 @@ function setupTaskRoutes(
         const db: Low<DBData> = getDB();
         const taskIndex = db.data.tasks.findIndex((t: Task) => t.id === id);
         if (taskIndex > -1) {
-            const prevStatus = db.data.tasks[taskIndex].status;
             db.data.tasks[taskIndex] = { ...db.data.tasks[taskIndex], ...updates };
             await db.write();
-            const task = db.data.tasks[taskIndex];
-            if (updates.status === 'inprogress' && prevStatus !== 'inprogress') {
-                runAiForTask(id as string).catch((e) => console.error(`[Tasks] runAiForTask(${id}):`, e));
-            }
-            res.json(task);
+            res.json(db.data.tasks[taskIndex]);
         } else {
             res.status(404).json({ error: 'Task not found' });
         }

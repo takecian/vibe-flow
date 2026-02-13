@@ -4,7 +4,7 @@
   "description": "Local task management with Git worktrees and AI integration",
   "main": "bin/vibe-flow.js",
   "bin": {
-    "vibetree": "./bin/vibe-flow.js"
+    "vibetree": "./bin/vibetree.js"
   },
   "workspaces": [
     "client",

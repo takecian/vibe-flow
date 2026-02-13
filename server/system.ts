@@ -72,14 +72,26 @@ function setupSystemRoutes(app: Application): void {
                     env: { ...process.env, PATH: extendedPath }
                 });
                 if (stdout.trim()) {
-                    console.log(`Tool ${tool} found at: ${stdout.trim()}`);
+                    console.log(`[System] Tool ${tool} found via which at: ${stdout.trim()}`);
                     found = true;
                 }
             } catch (e) {
                 // Ignore error, try next method
             }
 
-            // 2. Check for configuration directory/files (fallback like vibe-kanban)
+            // 2. Direct binary check in common paths
+            if (!found) {
+                for (const p of commonPaths) {
+                    const binaryPath = path.join(p, tool + (os.platform() === 'win32' ? '.exe' : ''));
+                    if (fs.existsSync(binaryPath)) {
+                        console.log(`[System] Tool ${tool} found via direct check at: ${binaryPath}`);
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            // 3. Check for configuration directory/files (fallback like vibe-kanban)
             if (!found) {
                 try {
                     const home = os.homedir();
@@ -88,14 +100,16 @@ function setupSystemRoutes(app: Application): void {
                         configPath = path.join(home, '.gemini');
                     } else if (tool === 'claude') {
                         configPath = path.join(home, '.anthropic');
+                    } else if (tool === 'codex') {
+                        configPath = path.join(home, '.codex');
                     }
 
                     if (configPath && fs.existsSync(configPath)) {
-                        console.log(`Tool ${tool} config config directory found at: ${configPath}`);
+                        console.log(`[System] Tool ${tool} config directory found at: ${configPath}`);
                         found = true;
                     }
                 } catch (e) {
-                    console.log(`Config check failed for ${tool}:`, e);
+                    console.log(`[System] Config check failed for ${tool}:`, e);
                 }
             }
 
