@@ -7,17 +7,7 @@ Vibe-Flow is a local AI-enhanced Kanban board designed for seamless task managem
 You can launch Vibe-Flow directly using `npx` without installation:
 
 ```bash
-# Launch in current directory
-npx vibe-flow
-
-# Launch with a specific repository path
-npx vibe-flow --repo /path/to/your/repository
-
-# Launch with a specific AI tool (claude, codex, or gemini)
-npx vibe-flow --ai claude
-
-# Launch with both repository and AI tool
-npx vibe-flow --repo /path/to/your/repository --ai claude
+npx github:takecian/vibe-flow
 ```
 
 The app will start and automatically open in your default browser at `http://localhost:3000`.
