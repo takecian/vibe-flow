@@ -1,0 +1,24 @@
+# Exclude source code and build artifacts not needed for distribution
+client/src
+client/public
+client/vite.config.ts
+client/postcss.config.js
+client/tailwind.config.ts
+server/*.ts
+server/tsconfig.json
+shared/*.ts
+docs
+tests
+temp
+.vibe-flow
+.env
+.env.example
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+README.md
+!bin/vibe-flow.js
+!server/dist
+!client/dist
+node_modules
+package-lock.json
