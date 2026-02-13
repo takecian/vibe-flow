@@ -87,7 +87,7 @@ export function KanbanBoard() {
 
             <header className="px-6 py-4 border-b border-slate-600 flex justify-between items-center bg-slate-800">
                 <div className="flex items-center gap-4">
-                    <h1 className="m-0 text-xl font-semibold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">Vibe-Flow</h1>
+                    <h1 className="m-0 text-xl font-semibold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">Vibetree</h1>
                     {(isConnected || (config?.repoPath && config.repoPath.trim())) && (
                         <div className="flex items-center gap-1.5 bg-slate-600 text-slate-400 px-2.5 py-1 rounded-full text-sm font-medium border border-slate-600">
                             <Folder size={14} />
