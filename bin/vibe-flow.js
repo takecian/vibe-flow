@@ -67,6 +67,7 @@ const argv = yargs(hideBin(process.argv))
     // 3. Start Server
     const pkgRoot = path.join(__dirname, '..');
     const serverPath = path.join(pkgRoot, 'server', 'dist', 'index.js');
+    const clientPath = path.join(pkgRoot, 'client', 'dist');
     const env = {
         ...process.env,
         REPO_PATH: repoPath,
@@ -87,6 +88,19 @@ const argv = yargs(hideBin(process.argv))
         }
     }
 
+    if (!fs.existsSync(clientPath)) {
+        console.log('Building client dashboard (first run or npx)...');
+        const build = spawnSync('npm', ['run', 'build', '-w', 'client'], {
+            cwd: pkgRoot,
+            stdio: 'inherit',
+            shell: true,
+        });
+        if (build.status !== 0) {
+            console.error('Client build failed.');
+            process.exit(build.status || 1);
+        }
+    }
+
     console.log('Launching server...');
     const serverProcess = spawn('node', [serverPath], { env, stdio: 'inherit', cwd: pkgRoot });
 
@@ -95,6 +109,10 @@ const argv = yargs(hideBin(process.argv))
     });
 
     // Open Browser
-    // setTimeout(() => open('http://localhost:3000'), 2000);
+    const port = process.env.VIBE_FLOW_PORT || 3000;
+    setTimeout(() => {
+        console.log(`Opening dashboard at http://localhost:${port}...`);
+        open(`http://localhost:${port}`);
+    }, 2000);
 
 })();

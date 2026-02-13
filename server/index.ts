@@ -86,9 +86,23 @@ setupTaskRoutes(app, () => STATE, (repoPath, taskId, branchName) =>
 );
 setupSystemRoutes(app);
 
+// Serve static files from the client/dist directory
+const clientPath = path.join(__dirname, '..', '..', 'client', 'dist');
+app.use(express.static(clientPath));
+
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', ...STATE });
+});
+
+// Catch-all route to serve index.html for client-side routing
+app.get('*', (req: Request, res: Response) => {
+    const indexPath = path.join(clientPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).send('Dashboard not found. Please build the client.');
+    }
 });
 
 const PORT = process.env.VIBE_FLOW_PORT || 3000;
