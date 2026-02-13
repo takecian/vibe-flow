@@ -1,6 +1,6 @@
-# Repository Summary: Vibe-Flow
+# Repository Summary: Vibetree
 
-Vibe-Flow is an AI-enhanced local Kanban board designed for developers, integrating task management with Git and AI tools. It aims to streamline development workflows by providing features such as:
+Vibetree is an AI-enhanced local Kanban board designed for developers, integrating task management with Git and AI tools. It aims to streamline development workflows by providing features such as:
 
 -   **Kanban Board**: For task tracking with standard statuses (Todo, In Progress, In Review, Done, Cancelled).
 -   **Git Integration**: Allows selection and management of local Git repositories, automatic creation of Git worktrees per task, and direct UI access to Git status, diffs, commits, and PRs.

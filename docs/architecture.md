@@ -1,8 +1,8 @@
-# Vibe-Flow Architecture
+# Vibetree Architecture
 
 ## Overview
 
-Vibe-Flow is a local AI-enhanced Kanban board designed for developers to seamlessly manage tasks with Git integration and AI assistant support. The application follows a classic three-tier architecture with a CLI entry point, an Express.js backend server, and a React-based frontend client.
+Vibetree is a local AI-enhanced Kanban board designed for developers to seamlessly manage tasks with Git integration and AI assistant support. The application follows a classic three-tier architecture with a CLI entry point, an Express.js backend server, and a React-based frontend client.
 
 ## Technology Stack
 
@@ -33,9 +33,9 @@ Vibe-Flow is a local AI-enhanced Kanban board designed for developers to seamles
 ## Project Structure
 
 ```
-vibe-flow/
+vibetree/
 ├── bin/                    # CLI entry point
-│   └── vibe-flow.js       # Command-line interface script
+│   └── vibetree.js       # Command-line interface script
 ├── client/                 # React frontend (Vite)
 │   ├── public/            # Static assets
 │   ├── src/
@@ -79,7 +79,7 @@ vibe-flow/
 
 **Purpose**: Provide a command-line interface for launching the application.
 
-**Key File**: `bin/vibe-flow.js`
+**Key File**: `bin/vibetree.js`
 
 **Responsibilities**:
 - Parse command-line arguments (repository path, AI tool selection)
@@ -133,9 +133,9 @@ vibe-flow/
 - Pull request helpers
 - API endpoints:
   - `POST /api/git/worktree` - Create worktree for task
-  - `GET /api/git/status` - Get git status
-  - `GET /api/git/diff` - Get git diff
-  - `POST /api/git/commit` - Create commit
+  - `GET /api/git/status` - Get git status for task
+  - `GET /api/git/diff` - Get git diff for task
+  - `POST /api/git/commit` - Create commit for task
   - `DELETE /api/git/worktree/:taskId` - Delete worktree
 
 #### `system.ts` - System Operations
@@ -237,12 +237,12 @@ vibe-flow/
 9. **Terminal Display**: Client displays output in xterm.js
 
 ### Git Operations Flow
-1. **User Action**: User clicks "Setup Worktree" or "View Diff"
-2. **API Call**: Client calls Git API endpoint
-3. **Git Command**: Server executes Git command via `git.ts`
-4. **File System Operation**: Git modifies file system (e.g., creates worktree)
-5. **Response**: Server returns result
-6. **UI Update**: Client displays result or updates state
+11. **User Action**: User clicks "Setup Worktree" or "View Diff"
+12. **API Call**: Client calls Git API endpoint
+13. **Git Command**: Server executes Git command via `git.ts`
+14. **File System Operation**: Git modifies file system (e.g., creates worktree)
+15. **Response**: Server returns result
+16. **UI Update**: Client displays result or updates state
 
 ## API Endpoints
 
@@ -309,7 +309,7 @@ This runs:
 npm start
 ```
 
-This executes `bin/vibe-flow.js` which:
+This executes `bin/vibetree.js` which:
 1. Parses CLI arguments
 2. Loads configuration
 3. Launches the server from `server/dist/index.js`

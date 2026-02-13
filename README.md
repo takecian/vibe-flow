@@ -1,13 +1,13 @@
-# Vibe-Flow
+# Vibetree
 
-Vibe-Flow is a local AI-enhanced Kanban board designed for seamless task management and code integration. It combines a modern React frontend with a robust Node.js backend, built with TypeScript for enhanced type safety and developer experience.
+Vibetree is a local AI-enhanced Kanban board designed for seamless task management and code integration. It combines a modern React frontend with a robust Node.js backend, built with TypeScript for enhanced type safety and developer experience.
 
 ## Quick Start with npx
 
-You can launch Vibe-Flow directly using `npx` without installation:
+You can launch Vibetree directly using `npx` without installation:
 
 ```bash
-npx github:takecian/vibe-flow
+npx github:takecian/vibetree
 ```
 
 The app will start and automatically open in your default browser at `http://localhost:3000`.
@@ -51,8 +51,8 @@ The app will start and automatically open in your default browser at `http://loc
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/takecian/vibe-flow.git
-    cd vibe-flow
+    git clone https://github.com/takecian/vibetree.git
+    cd vibetree
     ```
 
 2.  Install dependencies:
