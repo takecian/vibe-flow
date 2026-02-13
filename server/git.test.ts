@@ -39,7 +39,8 @@ describe('git', () => {
     it('should execute git command and return stdout', async () => {
       const result = await runGit('git branch --show-current', testRepoPath, testRepoPath);
       
-      expect(result).toBe('master');
+      // Git default branch can be 'master' or 'main' depending on Git version
+      expect(['master', 'main']).toContain(result);
     });
 
     it('should throw error when command fails', async () => {
