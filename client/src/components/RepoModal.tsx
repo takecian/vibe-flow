@@ -127,7 +127,7 @@ export function RepoModal({ onSave, initialConfig, onClose }: RepoModalProps) {
                     </div>
 
                     <div className="mb-6">
-                        <label className="block mb-2 text-sm font-medium text-slate-50">Copy files to worktree</label>
+                        <label className="block mb-2 text-sm font-medium text-slate-50">Files to copy into worktrees</label>
                         <textarea
                             value={copyFiles}
                             onChange={(e) => setCopyFiles(e.target.value)}

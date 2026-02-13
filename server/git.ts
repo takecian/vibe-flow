@@ -83,11 +83,6 @@ function setupGitRoutes(app: Application, getState: () => AppConfig): void {
     });
 }
 
-/** Shell-escape a path for use inside single quotes (e.g. for cp) */
-function escapeSingleQuoted(s: string): string {
-    return "'" + s.replace(/'/g, "'\\''") + "'";
-}
-
 // Helper function exposed for other modules
 async function createWorktree(
     repoPath: string,
@@ -122,7 +117,7 @@ async function createWorktree(
                     continue;
                 }
                 try {
-                    await execAsync(`cp ${escapeSingleQuoted(srcPath)} ${escapeSingleQuoted(destPath)}`);
+                    fs.copyFileSync(srcPath, destPath);
                     console.log(`[Worktree] Copied ${path.basename(entry)} to worktree`);
                 } catch (copyErr: any) {
                     console.warn(`[Worktree] Failed to copy ${entry}:`, copyErr.message);
