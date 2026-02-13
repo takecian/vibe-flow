@@ -2,6 +2,26 @@
 
 Vibe-Flow is a local AI-enhanced Kanban board designed for seamless task management and code integration. It combines a modern React frontend with a robust Node.js backend, built with TypeScript for enhanced type safety and developer experience.
 
+## Quick Start with npx
+
+You can launch Vibe-Flow directly using `npx` without installation:
+
+```bash
+# Launch in current directory
+npx vibe-flow
+
+# Launch with a specific repository path
+npx vibe-flow --repo /path/to/your/repository
+
+# Launch with a specific AI tool (claude, codex, or gemini)
+npx vibe-flow --ai claude
+
+# Launch with both repository and AI tool
+npx vibe-flow --repo /path/to/your/repository --ai claude
+```
+
+The app will start and automatically open in your default browser at `http://localhost:3000`.
+
 ## Features
 
 - **Kanban Board**: Manage tasks with Todo, In Progress, In Review, Done, and Cancelled statuses.
