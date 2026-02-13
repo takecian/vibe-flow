@@ -9,6 +9,7 @@ import { Task, AppConfig } from './types'; // Import Task and AppConfig interfac
 type GetTaskByIdFunction = (taskId: string) => Promise<Task | undefined>;
 
 // Delay in milliseconds to wait for shell initialization before running AI command
+// 800ms allows sufficient time for zsh/bash shell to initialize and be ready for input
 const SHELL_INITIALIZATION_DELAY_MS = 800;
 
 /** Escape a string for use inside double-quoted zsh (and bash) string */
@@ -18,6 +19,7 @@ function escapeForShellDoubleQuoted(s: string): string {
         .replace(/"/g, '\\"')
         .replace(/`/g, '\\`')
         .replace(/\$/g, '\\$')
+        .replace(/!/g, '\\!')
         .replace(/\n/g, '\\n')
         .replace(/\r/g, '\\r')
         .replace(/\t/g, '\\t');
@@ -123,18 +125,21 @@ function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTa
 
             // After shell is ready, run selected AI with task context when we have a task
             if (taskForAi && aiTool) {
-                // Validate aiTool to prevent command injection - only allow alphanumeric, dash, underscore, dot, and slash
-                const safeAiToolPattern = /^[a-zA-Z0-9._\/-]+$/;
+                // Validate aiTool to prevent command injection - only allow simple command names
+                // without path traversal (no slashes allowed for security)
+                const safeAiToolPattern = /^[a-zA-Z0-9._-]+$/;
                 if (!safeAiToolPattern.test(aiTool)) {
-                    console.warn(`[Terminal] AI tool "${aiTool}" contains unsafe characters, skipping auto-execution`);
+                    console.warn(`[Terminal] AI tool "${aiTool}" contains unsafe characters or paths, skipping auto-execution`);
                 } else {
                     const prompt = buildAiPrompt(taskForAi);
                     const escaped = escapeForShellDoubleQuoted(prompt);
                     const command = `${aiTool} "${escaped}"\n`;
+                    // Capture task reference for use inside timeout callback
+                    const taskIdForLogging = taskForAi.id;
                     setTimeout(() => {
                         try {
                             ptyProcess.write(command);
-                            console.log(`[Terminal] Ran ${aiTool} with task context for task ${taskForAi!.id}`);
+                            console.log(`[Terminal] Ran ${aiTool} with task context for task ${taskIdForLogging}`);
                         } catch (e) {
                             console.error('[Terminal] Failed to run AI command:', e);
                         }
