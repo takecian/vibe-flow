@@ -110,7 +110,7 @@ const argv = yargs(hideBin(process.argv))
 
     // Open Browser
     const { default: open } = await import('open');
-    const port = process.env.VIBE_FLOW_PORT || 3000;
+    const port = process.env.VIBE_FLOW_PORT || 5179;
     setTimeout(() => {
         console.log(`Opening dashboard at http://localhost:${port}...`);
         open(`http://localhost:${port}`);
