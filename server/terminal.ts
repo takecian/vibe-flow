@@ -54,6 +54,22 @@ function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTa
         return ptyProcess;
     }
 
+    function attachSocketToSession(socket: Socket, session: TerminalSession, termId: string, cols?: number, rows?: number): void {
+        session.socket = socket;
+        socket.once(`terminal:input:${termId}`, function inputHandler(data: string) {
+            session.pty.write(data);
+            socket.on(`terminal:input:${termId}`, inputHandler);
+        });
+        socket.once(`terminal:resize:${termId}`, function resizeHandler({ cols: c, rows: r }: { cols: number; rows: number }) {
+            session.pty.resize(c || 80, r || 30);
+            socket.on(`terminal:resize:${termId}`, resizeHandler);
+        });
+        socket.on('disconnect', () => {
+            session.socket = null;
+        });
+        if (cols && rows) session.pty.resize(cols, rows);
+    }
+
     /** Create terminal for a task when task is created (worktree must already exist). */
     async function ensureTerminalForTask(taskId: string): Promise<void> {
         if (sessions[taskId]) return;
@@ -106,15 +122,7 @@ function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTa
 
             if (session) {
                 // Reuse existing terminal: attach this socket
-                session.socket = socket;
-                socket.on(`terminal:input:${termId}`, (data: string) => session.pty.write(data));
-                socket.on(`terminal:resize:${termId}`, ({ cols: c, rows: r }: { cols: number; rows: number }) => {
-                    session.pty.resize(c || 80, r || 30);
-                });
-                socket.on('disconnect', () => {
-                    session.socket = null;
-                });
-                if (cols && rows) session.pty.resize(cols, rows);
+                attachSocketToSession(socket, session, termId, cols, rows);
                 return;
             }
 
@@ -151,16 +159,7 @@ function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTa
             console.log(`[Terminal] Spawning ${shell} in ${workingDir}`);
             const ptyProcess = spawnPty(workingDir, termId, taskEnv);
             session = sessions[termId];
-            session.socket = socket;
-
-            socket.on(`terminal:input:${termId}`, (data: string) => ptyProcess.write(data));
-            socket.on(`terminal:resize:${termId}`, ({ cols: c, rows: r }: { cols: number; rows: number }) => {
-                ptyProcess.resize(c || 80, r || 30);
-            });
-            socket.on('disconnect', () => {
-                session.socket = null;
-            });
-            if (cols && rows) ptyProcess.resize(cols, rows);
+            attachSocketToSession(socket, session, termId, cols, rows);
         });
     });
 

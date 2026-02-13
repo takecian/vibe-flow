@@ -80,8 +80,7 @@ function setupTaskRoutes(
             await db.write();
             const task = db.data.tasks[taskIndex];
             if (updates.status === 'inprogress' && prevStatus !== 'inprogress') {
-                const taskId = Array.isArray(id) ? id[0] : id;
-                runAiForTask(taskId).catch((e) => console.error(`[Tasks] runAiForTask(${taskId}):`, e));
+                runAiForTask(id as string).catch((e) => console.error(`[Tasks] runAiForTask(${id}):`, e));
             }
             res.json(task);
         } else {
