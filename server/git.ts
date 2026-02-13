@@ -116,6 +116,11 @@ async function createWorktree(
                     console.warn(`[Worktree] Copy skipped (not found): ${srcPath}`);
                     continue;
                 }
+                // Only copy files, not directories
+                if (!fs.statSync(srcPath).isFile()) {
+                    console.warn(`[Worktree] Copy skipped (not a file): ${srcPath}`);
+                    continue;
+                }
                 try {
                     fs.copyFileSync(srcPath, destPath);
                     console.log(`[Worktree] Copied ${path.basename(entry)} to worktree`);
