@@ -1,4 +1,4 @@
-import pty from 'node-pty'; // Reverted to original 'node-pty'
+import * as pty from 'node-pty';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
@@ -8,13 +8,30 @@ import { Task, AppConfig } from './types'; // Import Task and AppConfig interfac
 // Define a type for the getTaskById function
 type GetTaskByIdFunction = (taskId: string) => Promise<Task | undefined>;
 
+/** Escape a string for use inside double-quoted zsh (and bash) string */
+function escapeForShellDoubleQuoted(s: string): string {
+    return s
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/`/g, '\\`')
+        .replace(/\$/g, '\\$');
+}
+
+function buildAiPrompt(task: Task): string {
+    const parts = [`Task: ${task.title}`];
+    if (task.description?.trim()) {
+        parts.push('', task.description.trim());
+    }
+    return parts.join('\n');
+}
+
 function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTaskByIdFunction): void {
     const shell = os.platform() === 'win32' ? 'powershell.exe' : 'zsh';
     const sessions: { [key: string]: pty.IPty } = {}; // Type the sessions object
 
     io.on('connection', (socket: Socket) => {
         socket.on('terminal:create', async ({ cols, rows, taskId }: { cols: number, rows: number, taskId: string }) => {
-            const { repoPath } = getState();
+            const { repoPath, aiTool } = getState();
 
             if (!repoPath) {
                 socket.emit('terminal:error', 'Repository path not configured');
@@ -29,10 +46,12 @@ function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTa
 
             let workingDir = repoPath;
             const taskEnv: NodeJS.ProcessEnv = {}; // Environment variables for the task
+            let taskForAi: Task | undefined;
 
             if (taskId && taskId !== 'default') {
                 const task = await getTaskById(taskId);
                 if (task) {
+                    taskForAi = task;
                     // Only inject details if the task is "in progress"
                     if (task.status === 'inprogress') {
                         taskEnv.TASK_ID = task.id;
@@ -95,6 +114,21 @@ function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTa
             socket.on(`terminal:resize:${termId}`, ({ cols, rows }: { cols: number, rows: number }) => {
                 ptyProcess.resize(cols, rows);
             });
+
+            // After shell is ready, run selected AI with task context when we have a task
+            if (taskForAi && aiTool) {
+                const prompt = buildAiPrompt(taskForAi);
+                const escaped = escapeForShellDoubleQuoted(prompt);
+                const command = `${aiTool} "${escaped}"\n`;
+                setTimeout(() => {
+                    try {
+                        ptyProcess.write(command);
+                        console.log(`[Terminal] Ran ${aiTool} with task context for task ${taskForAi!.id}`);
+                    } catch (e) {
+                        console.error('[Terminal] Failed to run AI command:', e);
+                    }
+                }, 800);
+            }
 
             socket.on('disconnect', () => {
                 // Cleanup if necessary
