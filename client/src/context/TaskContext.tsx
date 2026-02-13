@@ -62,16 +62,12 @@ export function TaskProvider({ children }: TaskProviderProps) {
     }, []);
 
     const setRepoPath = async (path: string, aiTool: string) => {
-        const newHelper: Partial<AppConfig> = { ...config, repoPath: path };
-        if (aiTool) newHelper.aiTool = aiTool;
+        const newHelper: AppConfig = {
+            repoPath: path,
+            aiTool: aiTool || config?.aiTool || 'claude'
+        };
 
-        // Ensure config is not null before proceeding
-        if (!config) {
-            console.error("Config is null, cannot update repository path.");
-            return;
-        }
-
-        const updatedConfig: AppConfig = await updateConfigApi(newHelper as AppConfig); // Cast to AppConfig
+        const updatedConfig: AppConfig = await updateConfigApi(newHelper);
         setConfig(updatedConfig);
         if (updatedConfig.repoPath) {
             setIsConnected(true);
