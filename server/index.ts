@@ -72,10 +72,12 @@ if (STATE.repoPath) {
 }
 
 // Setup Routes
-setupTerminal(io, () => STATE, getTaskById);
+const { ensureTerminalForTask, runAiForTask } = setupTerminal(io, () => STATE, getTaskById);
 setupGitRoutes(app, () => STATE);
 setupTaskRoutes(app, () => STATE, (repoPath, taskId, branchName) =>
-    createWorktree(repoPath, taskId, branchName, STATE.copyFiles)
+    createWorktree(repoPath, taskId, branchName, STATE.copyFiles),
+    ensureTerminalForTask,
+    runAiForTask
 );
 setupSystemRoutes(app);
 

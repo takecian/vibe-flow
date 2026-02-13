@@ -4,9 +4,9 @@ import { Request, Response, Application, NextFunction } from 'express';
 import { Task, DBData, AppConfig } from './types';
 import { Low } from 'lowdb';
 
-// Assuming createWorktree is defined in git.ts and will be imported there.
-// For now, we'll define a type for it to avoid immediate errors.
 type CreateWorktreeFunction = (repoPath: string, taskId: string, branchName: string) => Promise<{ success: boolean; path: string; message?: string }>;
+type EnsureTerminalForTaskFunction = (taskId: string) => Promise<void>;
+type RunAiForTaskFunction = (taskId: string) => Promise<void>;
 
 
 async function getTaskById(taskId: string): Promise<Task | undefined> {
@@ -15,7 +15,13 @@ async function getTaskById(taskId: string): Promise<Task | undefined> {
     return db.data.tasks.find((t: Task) => t.id === taskId);
 }
 
-function setupTaskRoutes(app: Application, getState: () => AppConfig, createWorktree: CreateWorktreeFunction): void {
+function setupTaskRoutes(
+    app: Application,
+    getState: () => AppConfig,
+    createWorktree: CreateWorktreeFunction,
+    ensureTerminalForTask: EnsureTerminalForTaskFunction,
+    runAiForTask: RunAiForTaskFunction
+): void {
 
     // Middleware to ensure DB is ready or check path
     const checkDB = (req: Request, res: Response, next: NextFunction): void => {
@@ -50,16 +56,14 @@ function setupTaskRoutes(app: Application, getState: () => AppConfig, createWork
         db.data.tasks.push(newTask);
         await db.write();
 
-        // Auto-create worktree
+        // Auto-create worktree and terminal for new task
         try {
-            if (createWorktree) {
-                const { repoPath } = getState();
-                await createWorktree(repoPath, newTask.id, newTask.branchName);
-                console.log(`Auto-created worktree for task ${newTask.id}`);
-            }
+            const { repoPath } = getState();
+            await createWorktree(repoPath, newTask.id, newTask.branchName);
+            console.log(`Auto-created worktree for task ${newTask.id}`);
+            await ensureTerminalForTask(newTask.id);
         } catch (e: any) {
-            console.error(`Failed to auto-create worktree for task ${newTask.id}:`, e);
-            // Don't fail the request, just log it. User can retry via UI.
+            console.error(`Failed to auto-create worktree/terminal for task ${newTask.id}:`, e);
         }
 
         res.json(newTask);
@@ -71,9 +75,15 @@ function setupTaskRoutes(app: Application, getState: () => AppConfig, createWork
         const db: Low<DBData> = getDB();
         const taskIndex = db.data.tasks.findIndex((t: Task) => t.id === id);
         if (taskIndex > -1) {
+            const prevStatus = db.data.tasks[taskIndex].status;
             db.data.tasks[taskIndex] = { ...db.data.tasks[taskIndex], ...updates };
             await db.write();
-            res.json(db.data.tasks[taskIndex]);
+            const task = db.data.tasks[taskIndex];
+            if (updates.status === 'inprogress' && prevStatus !== 'inprogress') {
+                const taskId = Array.isArray(id) ? id[0] : id;
+                runAiForTask(taskId).catch((e) => console.error(`[Tasks] runAiForTask(${taskId}):`, e));
+            }
+            res.json(task);
         } else {
             res.status(404).json({ error: 'Task not found' });
         }
