@@ -96,7 +96,8 @@ app.get('/api/health', (req: Request, res: Response) => {
 });
 
 // Catch-all route to serve index.html for client-side routing
-app.get('/:path*', (req: Request, res: Response) => {
+// Using middleware instead of app.get('*') to avoid Express 5 / path-to-regexp v8 issues
+app.use((req: Request, res: Response) => {
     const indexPath = path.join(clientPath, 'index.html');
     if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
