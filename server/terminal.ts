@@ -56,13 +56,16 @@ function setupTerminal(io: Server, getState: () => AppConfig, getTaskById: GetTa
 
     function attachSocketToSession(socket: Socket, session: TerminalSession, termId: string, cols?: number, rows?: number): void {
         session.socket = socket;
-        socket.once(`terminal:input:${termId}`, function inputHandler(data: string) {
+        
+        // Remove any existing listeners for this termId to prevent duplicates
+        socket.removeAllListeners(`terminal:input:${termId}`);
+        socket.removeAllListeners(`terminal:resize:${termId}`);
+        
+        socket.on(`terminal:input:${termId}`, (data: string) => {
             session.pty.write(data);
-            socket.on(`terminal:input:${termId}`, inputHandler);
         });
-        socket.once(`terminal:resize:${termId}`, function resizeHandler({ cols: c, rows: r }: { cols: number; rows: number }) {
+        socket.on(`terminal:resize:${termId}`, ({ cols: c, rows: r }: { cols: number; rows: number }) => {
             session.pty.resize(c || 80, r || 30);
-            socket.on(`terminal:resize:${termId}`, resizeHandler);
         });
         socket.on('disconnect', () => {
             session.socket = null;
