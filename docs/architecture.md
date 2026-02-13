@@ -2,7 +2,7 @@
 
 ## Overview
 
-Vibetree is a local AI-enhanced Kanban board designed for developers to seamlessly manage tasks with Git integration and AI assistant support. The application follows a classic three-tier architecture with a CLI entry point, an Express.js backend server, and a React-based frontend client.
+Vibetree is a local AI-enhanced task manager designed for developers to seamlessly manage tasks with Git integration and AI assistant support. The application follows a classic three-tier architecture with a CLI entry point, an Express.js backend server, and a React-based frontend client.
 
 ## Technology Stack
 
@@ -11,7 +11,6 @@ Vibetree is a local AI-enhanced Kanban board designed for developers to seamless
 - **TypeScript**: Type-safe development
 - **Vite**: Fast build tool and development server
 - **React Router DOM**: Client-side routing
-- **@hello-pangea/dnd**: Drag-and-drop functionality for Kanban board
 - **Socket.IO Client**: Real-time bidirectional communication
 - **xterm.js**: Terminal emulator in the browser
 - **Lucide React**: Icon library
@@ -41,7 +40,7 @@ vibetree/
 │   ├── src/
 │   │   ├── components/    # React components
 │   │   │   ├── CreateTaskModal.tsx
-│   │   │   ├── KanbanBoard.tsx
+│   │   │   ├── KanbanBoard.tsx   # Main Task Board (Single List View)
 │   │   │   ├── RepoModal.tsx
 │   │   │   ├── TaskDetail.tsx
 │   │   │   └── TerminalView.tsx
@@ -69,6 +68,7 @@ vibetree/
 ├── docs/                   # Documentation
 │   └── architecture.md    # This file
 ├── package.json            # Root package.json (workspace configuration)
+|── vibetree_config.json    # Persistent configuration (git ignored)
 └── README.md              # Project README
 
 ```
@@ -116,8 +116,7 @@ vibetree/
 
 #### `tasks.ts` - Task Management
 - CRUD operations for tasks
-- Task status updates
-- Task assignment and tracking
+- Automated environment initialization (Git worktree creation)
 - RESTful API endpoints:
   - `GET /api/tasks` - List all tasks
   - `POST /api/tasks` - Create a new task
@@ -130,7 +129,6 @@ vibetree/
 - Worktree creation and deletion
 - Git status and diff operations
 - Commit creation
-- Pull request helpers
 - API endpoints:
   - `POST /api/git/worktree` - Create worktree for task
   - `GET /api/git/status` - Get git status for task
@@ -140,10 +138,10 @@ vibetree/
 
 #### `system.ts` - System Operations
 - Native directory picker
-- AI tool detection (PATH and config files)
+- AI tool detection (PATH and binary locations)
 - System configuration
 - API endpoints:
-  - `POST /api/system/select-directory` - Open directory picker
+  - `GET /api/system/pick-folder` - Open directory picker
   - `GET /api/system/ai-tools` - Detect available AI tools
 
 #### `terminal.ts` - Terminal Emulation
@@ -157,7 +155,7 @@ vibetree/
 - Environment variables:
   - `REPO_PATH`: Target repository path
   - `AI_TOOL`: Selected AI assistant
-  - `PORT`: Server port
+  - `VIBE_FLOW_PORT`: Server port
 
 ### 3. Client Layer (`client/`)
 
@@ -172,9 +170,8 @@ vibetree/
 - Route definitions
 - TaskProvider wrapper
 
-#### `KanbanBoard.tsx` - Main Board View
-- Drag-and-drop Kanban board
-- Task columns (Todo, In Progress, In Review, Done, Cancelled)
+#### `KanbanBoard.tsx` - Main Task View
+- Single-list task view
 - Task creation modal trigger
 - Settings modal for repository configuration
 - Real-time task updates
@@ -184,7 +181,6 @@ vibetree/
 - Worktree management
 - Embedded terminal
 - Git operations (status, diff, commit)
-- Task status updates
 
 #### `TerminalView.tsx` - Terminal Emulator
 - xterm.js integration
@@ -198,14 +194,12 @@ vibetree/
 #### `RepoModal.tsx` - Repository Settings
 - Repository path selection
 - AI tool selection
-- Configuration persistence
 
 #### `TaskContext.tsx` - Global State Management
 - React Context for task state
 - API integration
 - Task CRUD operations
 - Configuration management
-- Connection status
 
 #### `api.ts` - API Client
 - HTTP client functions
@@ -215,15 +209,16 @@ vibetree/
 ## Data Flow
 
 ### Task Management Flow
-1. **User Action**: User interacts with UI (e.g., creates task, drags task)
+1. **User Action**: User interacts with UI (e.g., creates task, selects task)
 2. **Context Update**: TaskContext handles the action
 3. **API Call**: Context calls API function in `api.ts`
 4. **HTTP Request**: Request sent to Express server
 5. **Server Processing**: Server module (e.g., `tasks.ts`) processes request
 6. **Database Operation**: Data persisted to LowDB
-7. **Response**: Server sends response back to client
-8. **State Update**: Context updates local state
-9. **UI Render**: React re-renders affected components
+7. **Automated Initialization**: Server (optionally) creates Git worktree and initializes terminal
+8. **Response**: Server sends response back to client
+9. **State Update**: Context updates local state
+10. **UI Render**: React re-renders affected components
 
 ### Real-time Terminal Flow
 1. **Terminal Component Mounted**: TerminalView component initializes
@@ -237,18 +232,17 @@ vibetree/
 9. **Terminal Display**: Client displays output in xterm.js
 
 ### Git Operations Flow
-11. **User Action**: User clicks "Setup Worktree" or "View Diff"
-12. **API Call**: Client calls Git API endpoint
-13. **Git Command**: Server executes Git command via `git.ts`
-14. **File System Operation**: Git modifies file system (e.g., creates worktree)
-15. **Response**: Server returns result
-16. **UI Update**: Client displays result or updates state
+1. **User Action**: User clicks "View Diff" or "Commit"
+2. **API Call**: Client calls Git API endpoint
+3. **Git Command**: Server executes Git command via `git.ts`
+4. **File System Operation**: Git modifies file system (e.g., creates worktree)
+5. **Response**: Server returns result
+6. **UI Update**: Client displays result or updates state
 
 ## API Endpoints
 
 ### Configuration
 - `GET /api/config` - Get current configuration
-- `POST /api/config` - Update configuration
 
 ### Tasks
 - `GET /api/tasks` - List all tasks
@@ -265,7 +259,7 @@ vibetree/
 - `DELETE /api/git/worktree/:taskId` - Delete worktree
 
 ### System
-- `POST /api/system/select-directory` - Open native directory picker
+- `GET /api/system/pick-folder` - Open native directory picker
 - `GET /api/system/ai-tools` - Detect available AI tools
 
 ### Socket.IO Events

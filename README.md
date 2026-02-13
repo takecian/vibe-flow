@@ -1,6 +1,6 @@
 # Vibetree
 
-Vibetree is a local AI-enhanced Kanban board designed for seamless task management and code integration. It combines a modern React frontend with a robust Node.js backend, built with TypeScript for enhanced type safety and developer experience.
+Vibetree is a local AI-enhanced task manager designed for seamless development workflows and Git integration. It combines a modern React frontend with a robust Node.js backend, providing an isolated environment for each task using Git worktrees.
 
 **🔒 Privacy First**: Vibetree runs 100% locally on your machine. No data is sent to external servers - your code, tasks, and AI interactions stay private and secure.
 
@@ -16,28 +16,28 @@ The app will start and automatically open in your default browser at `http://loc
 
 ## Features
 
-- **Kanban Board**: Manage tasks with Todo, In Progress, In Review, Done, and Cancelled statuses.
+- **Task Management**:
+    - Create tasks with titles and detailed descriptions.
+    - Automated environment setup (worktree + terminal) upon task creation.
+    - Track task progress in a clean, single-list interface.
 - **Git Integration**:
     - Select and manage local Git repositories.
-    - Create Git worktrees for each task automatically.
+    - Create Git worktrees for each task automatically to isolate changes.
     - View git status, diffs, and create commits/PRs directly from the UI.
 - **AI Assistant Integration**:
     - Configure and use local CLI AI tools like **Claude**, **Codex**, and **Gemini**.
-    - Robust tool detection (checks PATH and configuration files).
+    - Robust tool detection (checks PATH and binary locations).
+    - Automated AI initialization for new tasks.
     - Integrated terminal for executing AI commands and scripts.
-- **Task Management**:
-    - Create tasks with titles and detailed descriptions.
-    - Track task progress and history.
 - **Native System Integration**:
     - Native directory picker for selecting repositories.
-    - Terminal emulator (xterm.js) embedded in task details.
+    - Persistent terminal sessions (xterm.js) for each task.
 - **Modern UI**:
     - Built with React and Vite.
-    - Drag-and-drop interface (hello-pangea/dnd).
+    - Clean, focus-oriented interface.
     - Dark mode optimized.
 - **TypeScript**:
     - Fully typed codebase for both client and server.
-    - Strict mode enabled for maximum type safety.
 
 ## Prerequisites
 
@@ -47,7 +47,7 @@ The app will start and automatically open in your default browser at `http://loc
     - `claude` (Claude CLI)
     - `gemini` (Gemini CLI)
     - `codex`
-    - Ensure these are installed and available in your PATH or configured in their default home directories (e.g., `~/.gemini`).
+    - Ensure these are installed and available in your PATH.
 
 ## Installation
 
@@ -70,12 +70,12 @@ The app will start and automatically open in your default browser at `http://loc
 
 ## Usage
 
-1.  Start the development server (runs both client and server concurrently):
+1.  Start the development server:
     ```bash
     npm run dev
     ```
 
-2.  Open your browser and navigate to `http://localhost:5173`.
+2.  Open your browser and navigate to `http://localhost:5179` (or the port specified in the log).
 
 3.  **Setup**:
     - Click the **Settings** (gear icon) in the top right.
@@ -83,10 +83,10 @@ The app will start and automatically open in your default browser at `http://loc
     - Select your preferred **AI Assistant**.
 
 4.  **Workflow**:
-    - Create a new task.
-    - Click "Setup Worktree" in the task detail view to create an isolated environment.
-    - Use the embedded terminal to run commands or interact with the AI assistant.
-    - Drag tasks across columns to update status.
+    - **Create a Task**: Enter a title and description. Vibetree automatically creates a Git worktree and initializes a terminal session.
+    - **Work**: Use the embedded terminal to run commands. The AI assistant is automatically invoked to provide context-aware help.
+    - **review**: Check the **Diff** tab to see your changes in the worktree.
+    - **Commit**: (Planned) Commit your changes directly from the UI.
 
 ## Project Structure
 
