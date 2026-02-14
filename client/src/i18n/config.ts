@@ -6,7 +6,8 @@ import ko from './locales/ko.json';
 import zh from './locales/zh.json';
 
 // Get stored language from localStorage or default to 'en'
-const savedLanguage = localStorage.getItem('i18nextLng') || 'en';
+// Check if window is defined to avoid SSR issues
+const savedLanguage = typeof window !== 'undefined' ? localStorage.getItem('i18nextLng') || 'en' : 'en';
 
 i18n
   .use(initReactI18next)
