@@ -4,6 +4,7 @@ import { useTasks } from '../context/TaskContext';
 import { RepoModal } from './RepoModal';
 import { CreateTaskModal } from './CreateTaskModal';
 import { TaskDetail } from './TaskDetail';
+import { LanguageSelector } from './LanguageSelector';
 import { Plus, Github, Folder, Settings } from 'lucide-react';
 import { Task, AppConfig } from '../types'; // Import Task and AppConfig interfaces
 
@@ -69,6 +70,7 @@ export function KanbanBoard() {
                     )}
                 </div>
                 <div className="flex items-center gap-3">
+                    <LanguageSelector />
                     <button
                         onClick={() => setShowSettings(true)}
                         className="bg-transparent border-0 cursor-pointer text-slate-400 p-2 rounded-md flex items-center justify-center transition-all hover:bg-slate-700 hover:text-slate-50"

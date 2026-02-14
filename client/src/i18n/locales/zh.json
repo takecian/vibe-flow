@@ -1,0 +1,63 @@
+{
+  "app": {
+    "title": "Vibetree"
+  },
+  "common": {
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "confirm": "确认",
+    "settings": "设置",
+    "noRepository": "无存储库"
+  },
+  "header": {
+    "newTask": "新建任务"
+  },
+  "taskList": {
+    "title": "所有任务",
+    "empty": "未找到任务。创建一个任务以开始。"
+  },
+  "createTask": {
+    "title": "创建新任务",
+    "titlePlaceholder": "任务标题",
+    "descriptionPlaceholder": "任务描述（可选）",
+    "createButton": "创建任务"
+  },
+  "repoModal": {
+    "title": "配置",
+    "subtitle": "设置您的存储库和AI助手。",
+    "repoPath": "存储库路径",
+    "repoPathPlaceholder": "/Users/username/projects/my-repo",
+    "browseFolderTitle": "浏览文件夹",
+    "aiAssistant": "AI助手",
+    "checkingTools": "正在检查工具...",
+    "copyFiles": "要复制到工作树的文件",
+    "copyFilesPlaceholder": ".env\n.env.local",
+    "copyFilesHelp": "每行一个路径（相对于存储库根目录的相对路径或绝对路径）。这些文件将被复制到每个新的工作树（例如.env）。",
+    "saveConfiguration": "保存配置",
+    "folderPickerError": "无法打开文件夹选择器。请手动粘贴路径。"
+  },
+  "taskDetail": {
+    "tabs": {
+      "details": "详情",
+      "terminal": "终端",
+      "diff": "差异"
+    },
+    "delete": "删除",
+    "deleteConfirmation": {
+      "title": "删除任务",
+      "message": "确定要删除任务"{{title}}"吗？这也会删除git工作树，并且无法撤消。",
+      "confirm": "删除"
+    },
+    "description": "描述",
+    "status": "状态",
+    "statusValues": {
+      "todo": "待办",
+      "inprogress": "进行中",
+      "done": "完成"
+    },
+    "diffLoading": "正在加载差异...",
+    "diffEmpty": "未检测到更改",
+    "diffError": "加载差异失败"
+  }
+}
