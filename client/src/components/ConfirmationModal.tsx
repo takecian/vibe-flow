@@ -9,7 +9,7 @@ interface ConfirmationModalProps {
     confirmText?: string;
 }
 
-export function ConfirmationModal({ onClose, onConfirm, title, children, confirmText }: ConfirmationModalProps) {
+export function ConfirmationModal({ onClose, onConfirm, title, children, confirmText = "Confirm" }: ConfirmationModalProps) {
     const { t } = useTranslation();
     
     return (
