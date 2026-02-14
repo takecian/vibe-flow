@@ -12,7 +12,7 @@ You can launch Vibetree directly using `npx` without installation:
 npx vibetree
 ```
 
-The app will start and automatically open in your default browser at `http://localhost:3000`.
+The app will start and automatically open in your default browser at `http://localhost:5179`.
 
 ## Features
 
