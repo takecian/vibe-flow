@@ -1,7 +1,5 @@
 # Repository Summary: Vibetree
 
-> **Note for GitHub Copilot users**: GitHub Copilot reads `.github/copilot-instructions.md` for custom instructions, not this file. See [docs/ai-agent-instructions.md](docs/ai-agent-instructions.md) for details.
-
 Vibetree is an AI-enhanced local task manager designed for developers, integrating task management with Git and AI tools. It aims to streamline development workflows by providing features such as:
 
 -   **Task List**: A focused single-list interface for managing tasks.
