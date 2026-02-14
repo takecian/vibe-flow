@@ -11,7 +11,7 @@ interface ConfirmationModalProps {
 
 export function ConfirmationModal({ onClose, onConfirm, title, children, confirmText = "Confirm" }: ConfirmationModalProps) {
     const { t } = useTranslation();
-    
+
     return (
         <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/70 flex justify-center items-center z-[1000] backdrop-blur-sm">
             <div className="bg-slate-800 p-8 rounded-xl w-full max-w-[400px] border border-slate-600 shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)]">
