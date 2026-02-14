@@ -6,12 +6,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { Repository, Task } from './types';
 
 const VIBE_DIR = path.join(os.homedir(), '.vibetree');
-const DB_PATH = path.join(VIBE_DIR, 'vibetree.db');
+const DB_PATH = process.env.NODE_ENV === 'test' ? ':memory:' : path.join(VIBE_DIR, 'vibetree.db');
 
-if (!fs.existsSync(VIBE_DIR)) {
+if (DB_PATH !== ':memory:' && !fs.existsSync(VIBE_DIR)) {
     fs.mkdirSync(VIBE_DIR, { recursive: true });
 }
 
+console.log(`[DB] Initializing SQLite database at: ${DB_PATH}`);
 const db = new Database(DB_PATH);
 
 // Initialize schema

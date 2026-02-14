@@ -9,12 +9,15 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, envDir, '')
 
   // Read version from package.json
-  const packageJsonPath = path.resolve(__dirname, '../../package.json')
+  const packageJsonPath = path.resolve(__dirname, '../package.json')
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
-  env.VITE_APP_VERSION = packageJson.version
+  process.env.VITE_APP_VERSION = packageJson.version
 
   return {
     plugins: [react()],
+    define: {
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(packageJson.version),
+    },
     envDir,
     server: {
       port: parseInt(env.VITE_PORT || '5173', 10),
