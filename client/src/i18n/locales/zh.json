@@ -46,7 +46,7 @@
     "delete": "删除",
     "deleteConfirmation": {
       "title": "删除任务",
-      "message": "确定要删除任务"{{title}}"吗？这也会删除git工作树，并且无法撤消。",
+      "message": "确定要删除任务\"{{title}}\"吗？这也会删除git工作树，并且无法撤消。",
       "confirm": "删除"
     },
     "description": "描述",
