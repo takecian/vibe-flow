@@ -6,7 +6,7 @@ This guide covers the essential steps and rules for developing Vibetree.
 
 Before you begin development, ensure you have the following installed:
 
-- **Node.js**: v16 or higher (v18+ recommended)
+- **Node.js**: v18 or higher (LTS recommended)
 - **npm**: v7 or higher (comes with Node.js)
 - **Git**: For version control and testing Git integration features
 - **AI Tools** (Optional, for testing AI features):
@@ -275,7 +275,7 @@ VIBE_FLOW_PORT=3000
 ### Testing Issues
 
 - **Tests failing**: Check mock implementations and test data
-- **Coverage not generated**: Ensure a coverage provider like `@vitest/coverage-v8` is installed
+- **Coverage not generated**: Ensure that a coverage provider like `@vitest/coverage-v8` is installed
 
 ## Resources
 
