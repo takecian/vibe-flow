@@ -27,7 +27,9 @@ export function LanguageSelector() {
 
   const handleLanguageChange = (languageCode: string) => {
     i18n.changeLanguage(languageCode);
-    localStorage.setItem('i18nextLng', languageCode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('i18nextLng', languageCode);
+    }
     setIsOpen(false);
   };
 
